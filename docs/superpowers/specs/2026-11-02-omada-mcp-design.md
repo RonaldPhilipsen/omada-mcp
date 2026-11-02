@@ -44,6 +44,11 @@ front of it, packaged so ToolHive can deploy, configure, and audit it.
 
 - Credentials are exactly `CLIENT_ID` + `CLIENT_SECRET` as the Omada OpenAPI
   defines; the server never handles usernames/passwords.
+- Project tooling is managed by [mise](https://mise.jdx.dev): `mise.toml`
+  pins `go` (matching the module) and `prek`, and a `[hooks] postinstall`
+  hook runs `prek install`, so `mise install` bootstraps the toolchain and
+  the pre-commit hooks (`prek` drives the pre-commit framework with a
+  `.pre-commit-config.yaml`).
 - Authentication is the on-prem northbound client-credentials flow
   (`POST /openapi/authorize/token?grant_type=client_credentials`) that
   `cloud.New(cloud.Options{BaseURL, OmadacID, ClientID, ClientSecret})` in the
