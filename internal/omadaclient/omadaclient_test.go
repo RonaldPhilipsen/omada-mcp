@@ -2,10 +2,19 @@ package omadaclient
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"io"
+	"math/big"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/RonaldPhilipsen/omada/cloud"
 
@@ -40,14 +49,14 @@ func TestNewBuildsClientInsecureTLS(t *testing.T) {
 		t.Errorf("OmadacID() = %q, want %q", got, "omac-123")
 	}
 
-	// InsecureTLS passthrough: the transport handed to cloud.New must
-	// skip TLS verification.
-	tr, ok := c.rt.Transport.(*http.Transport)
-	if !ok {
-		t.Fatalf("wrapped transport is %T, want *http.Transport", c.rt.Transport)
-	}
-	if tr.TLSClientConfig == nil || !tr.TLSClientConfig.InsecureSkipVerify {
-		t.Error("InsecureTLS did not propagate to the wrapped transport's TLS config")
+	// InsecureTLS passthrough: since omada v0.2.0 the flag is set on
+	// the module's native cloud.Options.InsecureTLS field and lives
+	// inside the module's own (unexported) auth transport. Pin the
+	// accessor here and the TLS behavior end to end in
+	// TestNewInsecureTLSPassthrough; the round trip below exercises
+	// the same client.
+	if c.HTTPClient() == nil {
+		t.Fatal("HTTPClient() = nil, want the module's auth client")
 	}
 
 	// The built client is usable against fakectrl: a full round trip
@@ -70,10 +79,11 @@ func TestNewBuildsClientInsecureTLS(t *testing.T) {
 		t.Errorf("decoded result = %+v, want one row named %q", out.Data, "Site One")
 	}
 
-	// Preflight at construction plus the client's own token provider:
-	// exactly two token requests.
-	if n := fake.TokenRequests(); n != 2 {
-		t.Errorf("TokenRequests() = %d, want 2 (preflight + request auth)", n)
+	// Preflight at construction fetches the token into the client's own
+	// provider, which the domain call above reuses: exactly one token
+	// request.
+	if n := fake.TokenRequests(); n != 1 {
+		t.Errorf("TokenRequests() = %d, want 1 (preflight, cached for request auth)", n)
 	}
 
 	reqs := fake.Requests()
@@ -170,5 +180,80 @@ func envelopeResponse(body string) *http.Response {
 		StatusCode: http.StatusOK,
 		Header:     http.Header{"Content-Type": []string{"application/json"}},
 		Body:       io.NopCloser(strings.NewReader(body)),
+	}
+}
+
+// selfSignedCert returns a self-signed certificate for example.com,
+// which does not match the 127.0.0.1 address the test server listens
+// on.
+func selfSignedCert(t *testing.T) tls.Certificate {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+	tmpl := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "example.com"},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+	}
+	der, err := x509.CreateCertificate(rand.Reader, &tmpl, &tmpl, &key.PublicKey, key)
+	if err != nil {
+		t.Fatalf("create certificate: %v", err)
+	}
+	return tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}
+}
+
+// TestNewInsecureTLSPassthrough pins the native
+// cloud.Options.InsecureTLS passthrough end to end: with the flag set,
+// a controller serving a hostname-mismatched self-signed certificate
+// is accepted for both the preflight and the domain call; without it,
+// construction fails certificate verification.
+func TestNewInsecureTLSPassthrough(t *testing.T) {
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/openapi/authorize/token":
+			fakectrl.EnvelopeJSON(w, 0, map[string]any{
+				"accessToken": "test-token",
+				"expiresIn":   3600,
+			})
+		case "/openapi/v1/omac-123/sites":
+			fakectrl.EnvelopeJSON(w, 0, map[string]any{
+				"data": []map[string]any{{"site": "site-1", "name": "Site One"}},
+			})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	srv.TLS = &tls.Config{Certificates: []tls.Certificate{selfSignedCert(t)}}
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+
+	cfg := config.Config{
+		BaseURL:      srv.URL,
+		OmadacID:     "omac-123",
+		ClientID:     "client-id-value",
+		ClientSecret: "client-secret-value",
+		InsecureTLS:  true,
+	}
+	c, err := New(cfg)
+	if err != nil {
+		t.Fatalf("New with InsecureTLS: %v", err)
+	}
+	resp, err := c.CloudAPI().Site().GetSiteList(context.Background(), "omac-123", nil)
+	if err != nil {
+		t.Fatalf("GetSiteList with InsecureTLS: %v", err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+
+	// Without the flag, the same controller must fail certificate
+	// verification at the preflight.
+	cfg.InsecureTLS = false
+	if _, err := New(cfg); err == nil {
+		t.Fatal("New without InsecureTLS succeeded, want certificate error")
 	}
 }

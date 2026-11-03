@@ -6,7 +6,6 @@ package omadaclient
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,39 +20,35 @@ import (
 // controller use.
 type Client struct {
 	*cloud.Client
-	rt       *http.Client
 	base     string
 	omadacID string
 }
 
 // New builds an on-prem northbound client from cfg. Auth is never
 // reimplemented: construction goes through cloud.New, and the
-// InsecureTLS setting is passed through as a TLS-skipping transport on
-// the http.Client handed to cloud.New (cloud.Options v0.1.0 has no
-// InsecureTLS field). A preflight token request via the module's own
-// org token provider verifies the credentials up front so a bad
-// controller answer fails the construction, not a later tool call.
-// The returned error names the controller URL and the controller's
-// message; it never contains the client ID or secret.
+// InsecureTLS setting is passed through the module's native
+// cloud.Options.InsecureTLS field. A preflight token request via the
+// module's own org token provider verifies the credentials up front so
+// a bad controller answer fails the construction, not a later tool
+// call. The returned error names the controller URL and the
+// controller's message; it never contains the client ID or secret.
 func New(cfg config.Config) (*Client, error) {
-	rt := newHTTPClient(cfg.InsecureTLS)
-
 	cl, err := cloud.New(cloud.Options{
 		BaseURL:      cfg.BaseURL,
 		OmadacID:     cfg.OmadacID,
 		ClientID:     cfg.ClientID,
 		ClientSecret: cfg.ClientSecret,
-		HTTPClient:   rt,
+		InsecureTLS:  cfg.InsecureTLS,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("omadaclient: %w", err)
 	}
 
-	if _, err := cloud.NewOrgTokenProvider(cfg.BaseURL, cfg.OmadacID, cfg.ClientID, cfg.ClientSecret, rt).Token(context.Background()); err != nil {
+	if err := cl.PreflightToken(context.Background()); err != nil {
 		return nil, fmt.Errorf("omadaclient: preflight token check against %s failed: %w", cfg.BaseURL, err)
 	}
 
-	return &Client{Client: cl, rt: rt, base: cfg.BaseURL, omadacID: cfg.OmadacID}, nil
+	return &Client{Client: cl, base: cfg.BaseURL, omadacID: cfg.OmadacID}, nil
 }
 
 // CloudAPI returns the wrapped generated client.
@@ -100,18 +95,4 @@ func Envelope(resp *http.Response, out any) error {
 		return fmt.Errorf("omadaclient: decode envelope result: %w", err)
 	}
 	return nil
-}
-
-// newHTTPClient returns an http.Client whose transport clones
-// http.DefaultTransport; when insecure is set the clone skips TLS
-// certificate verification.
-func newHTTPClient(insecure bool) *http.Client {
-	tr := http.DefaultTransport.(*http.Transport).Clone()
-	if insecure {
-		if tr.TLSClientConfig == nil {
-			tr.TLSClientConfig = &tls.Config{}
-		}
-		tr.TLSClientConfig.InsecureSkipVerify = true
-	}
-	return &http.Client{Transport: tr}
 }
