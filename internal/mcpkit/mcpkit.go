@@ -16,8 +16,9 @@ import (
 )
 
 // Version is the server version reported in MCP initialize responses.
-// It may be overridden at build time via -ldflags.
-const Version = "0.1.0"
+// It may be overridden at build time via -ldflags
+// ("-X github.com/RonaldPhilipsen/omada-mcp/internal/mcpkit.Version=...").
+var Version = "0.1.0"
 
 // Options gates which tools a Server exposes.
 type Options struct {
