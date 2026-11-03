@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  version:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.semVersie.outputs.tag }}
+      release: ${{ steps.semVersie.outputs.release }}
+      prerelease: ${{ steps.semVersie.outputs.prerelease }}
+      release_notes: ${{ steps.semVersie.outputs.release-notes }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Calculate version
+        id: semVersie
+        uses: RonaldPhilipsen/semVersie@41233349edfb40f4e6da4251fea7684026182dc9 # v2.3.4
+
+  release:
+    if: ${{ needs.version.outputs.release == 'true' }}
+    needs:
+      - version
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # to be able to push tags and create releases
+      packages: write # to be able to push the container image to GHCR
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./... -race -count=1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Compute image tags
+        id: image
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          # The latest tag is only attached to non-prerelease versions.
+          if [ "$PRERELEASE" = 'true' ]; then
+            echo "tags=ghcr.io/ronaldphilipsen/omada-mcp:$TAG" >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "tags=ghcr.io/ronaldphilipsen/omada-mcp:$TAG"
+              echo "ghcr.io/ronaldphilipsen/omada-mcp:latest"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.image.outputs.tags }}
+          build-args: VERSION=${{ needs.version.outputs.tag }}
+          labels: org.opencontainers.image.version=${{ needs.version.outputs.tag }}
+
+      - name: Tag and create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+          RELEASE_NOTES: ${{ needs.version.outputs.release_notes }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          # gh release create also creates the tag (at the default branch HEAD)
+          # when it does not exist yet, so tag and release land in one step.
+          if [ "$PRERELEASE" = 'true' ]; then
+            gh release create "$TAG" --title "$TAG" --notes "$RELEASE_NOTES" --prerelease
+          else
+            gh release create "$TAG" --title "$TAG" --notes "$RELEASE_NOTES"
+          fi
