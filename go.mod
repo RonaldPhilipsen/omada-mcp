@@ -3,7 +3,7 @@ module github.com/RonaldPhilipsen/omada-mcp
 go 1.27.3
 
 require (
-	github.com/RonaldPhilipsen/omada v0.2.0
+	github.com/RonaldPhilipsen/omada v0.2.1
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 )
 
