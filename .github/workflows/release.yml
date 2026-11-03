@@ -99,6 +99,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.image.outputs.tags }}
+          build-args: VERSION=${{ needs.version.outputs.tag }}
           labels: org.opencontainers.image.version=${{ needs.version.outputs.tag }}
 
       - name: Tag and create Release
