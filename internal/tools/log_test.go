@@ -1,7 +1,6 @@
 // Package tools_test pins the curated log group. Each test drives a real
 // mcpkit server over the SDK's in-memory transport pair against a real fake
-// controller (no mocks of the client or the transport), mirroring the site
-// group's pattern exemplar.
+// controller (no mocks of the client or the transport).
 package tools_test
 
 import (
@@ -18,7 +17,6 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/tools"
 )
 
-// allLogTools returns the two curated log tools from b.
 func allLogTools(b *tools.Base) []mcpkit.Tool {
 	return []mcpkit.Tool{b.LogAlerts(), b.LogEvents()}
 }

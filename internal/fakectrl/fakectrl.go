@@ -16,7 +16,6 @@ import (
 	"testing"
 )
 
-// Entry is one captured request.
 type Entry struct {
 	Method     string
 	Path       string
@@ -25,7 +24,6 @@ type Entry struct {
 	Body       []byte
 }
 
-// Fake is a fake Omada northbound controller.
 type Fake struct {
 	server *httptest.Server
 	mux    *http.ServeMux
@@ -62,7 +60,6 @@ func (f *Fake) SetTokenHandler(h http.Handler) {
 	f.tokenHandler = h
 }
 
-// URL returns the fake controller's base URL.
 func (f *Fake) URL() string {
 	return f.server.URL
 }
@@ -73,14 +70,12 @@ func (f *Fake) Handler() http.Handler {
 	return f.mux
 }
 
-// TokenRequests returns how many token endpoint requests were received.
 func (f *Fake) TokenRequests() int {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.tokenReqs
 }
 
-// Requests returns every captured request, in arrival order.
 func (f *Fake) Requests() []Entry {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -89,8 +84,6 @@ func (f *Fake) Requests() []Entry {
 	return out
 }
 
-// EnvelopeJSON writes an Omada northbound envelope
-// {errorCode, msg, result} with the given code and result payload.
 func EnvelopeJSON(w http.ResponseWriter, code int32, result any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

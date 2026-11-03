@@ -11,38 +11,31 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/opsindex"
 )
 
-// curatedOps are representative operations from the curated tool groups
-// built in tasks 4-9 (internal/tools). Each row pins the spec operationId
-// behind one tool, its HTTP method, and its mutability classification.
+// curatedOps are representative operations from the curated tool groups.
+// Each row pins the spec operationId behind one tool, its HTTP method,
+// and its mutability classification.
 var curatedOps = []struct {
 	tool     string
 	id       string
 	method   string
 	mutating bool
 }{
-	// site
 	{"omada_site_list", "getSiteList", "GET", false},
 	{"omada_site_get", "getSiteEntity", "GET", false},
 	{"omada_site_create", "createNewSite", "POST", true},
 	{"omada_site_delete", "deleteSite", "DELETE", true},
-	// client
 	{"omada_client_list", "getGridAllClients", "POST", false},
 	{"omada_client_get", "getClientDetail", "GET", false},
 	{"omada_client_block", "blockClient", "POST", true},
-	// device
 	{"omada_device_list", "getDeviceList", "GET", false},
 	{"omada_device_reboot", "rebootDevice", "POST", true},
 	{"omada_topology_get", "getTopology", "GET", false},
-	// lan
 	{"omada_lan_network_create", "createLanNetwork", "POST", true},
 	{"omada_lan_network_delete", "deleteLanNetwork", "DELETE", true},
 	{"omada_lan_network_get", "getLanNetwork", "GET", false},
-	// vpn
 	{"omada_vpn_s2s_list", "getSiteToSiteVpnList", "GET", false},
 	{"omada_vpn_s2s_modify", "modifySiteToSiteVpn", "PATCH", true},
-	// insight
 	{"omada_insight_overview", "getOverviewStatistics", "GET", false},
-	// log
 	{"omada_log_alerts", "getAlertLogsForSite", "GET", false},
 	{"omada_log_events", "getEventLogsForSite", "GET", false},
 }

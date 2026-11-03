@@ -42,7 +42,6 @@ func newSession(t *testing.T, name string, opt mcpkit.Options, tools ...mcpkit.T
 	return cs
 }
 
-// toolText concatenates the text content of a result and reports IsError.
 func toolText(result *mcp.CallToolResult) (string, bool) {
 	var text string
 	for _, c := range result.Content {

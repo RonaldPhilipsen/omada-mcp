@@ -1,7 +1,7 @@
 // Package tools_test pins the curated device group (including the
 // topology tool). Each test drives a real mcpkit server over the SDK's
 // in-memory transport pair against a real fake controller (no mocks of the
-// client or the transport), mirroring the site group's pattern exemplar.
+// client or the transport).
 package tools_test
 
 import (
@@ -18,7 +18,6 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/tools"
 )
 
-// allDeviceTools returns the four curated device/topology tools from b.
 func allDeviceTools(b *tools.Base) []mcpkit.Tool {
 	return []mcpkit.Tool{b.DeviceList(), b.DevicesBySite(), b.DeviceReboot(), b.TopologyGet()}
 }
@@ -291,7 +290,6 @@ func TestDeviceMissingRequiredSiteID(t *testing.T) {
 	before := len(fake.Requests())
 	cs := newSession(t, mcpkit.Options{ReadOnly: false}, allDeviceTools(b)...)
 
-	// Missing site_id.
 	result, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "omada_device_list"})
 	if err == nil {
 		text, _ := toolText(result)
@@ -301,7 +299,6 @@ func TestDeviceMissingRequiredSiteID(t *testing.T) {
 		t.Errorf("omada_device_list: tool error %q does not name the missing site_id", err)
 	}
 
-	// Present site_id, missing device_mac.
 	result, err = cs.CallTool(context.Background(), &mcp.CallToolParams{
 		Name:      "omada_device_reboot",
 		Arguments: map[string]any{"site_id": "site-1"},

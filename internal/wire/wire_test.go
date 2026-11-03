@@ -25,19 +25,12 @@ import (
 
 // curatedTools is the full curated catalog, pinned name by name.
 var curatedTools = []string{
-	// site
 	"omada_site_list", "omada_site_get", "omada_site_create", "omada_site_delete",
-	// client
 	"omada_client_list", "omada_client_get", "omada_client_block", "omada_client_unblock", "omada_client_reconnect",
-	// device
 	"omada_device_list", "omada_devices_by_site", "omada_device_reboot", "omada_topology_get",
-	// lan
 	"omada_lan_networks_list", "omada_lan_network_get", "omada_lan_network_create", "omada_lan_network_delete", "omada_dhcp_list",
-	// vpn
 	"omada_vpn_list", "omada_vpn_s2s_list", "omada_vpn_c2s_servers_list", "omada_vpn_s2s_modify",
-	// insight
 	"omada_insight_overview", "omada_insight_unresolved_count", "omada_insight_incidents",
-	// log
 	"omada_log_alerts", "omada_log_events",
 }
 
@@ -107,7 +100,6 @@ func newSession(t *testing.T, srv *mcpkit.Server) *mcp.ClientSession {
 	return cs
 }
 
-// toolNames lists the session's tool names, sorted.
 func toolNames(t *testing.T, cs *mcp.ClientSession) []string {
 	t.Helper()
 	listed, err := cs.ListTools(context.Background(), nil)
@@ -122,7 +114,6 @@ func toolNames(t *testing.T, cs *mcp.ClientSession) []string {
 	return names
 }
 
-// wantExactly fails the test when names is not exactly the union of wants.
 func wantExactly(t *testing.T, names []string, wants ...[]string) {
 	t.Helper()
 	want := make([]string, 0, 32)
@@ -135,7 +126,6 @@ func wantExactly(t *testing.T, names []string, wants ...[]string) {
 	}
 }
 
-// toolText concatenates the text content of a result and reports IsError.
 func toolText(result *mcp.CallToolResult) (string, bool) {
 	var text string
 	for _, c := range result.Content {
@@ -146,7 +136,6 @@ func toolText(result *mcp.CallToolResult) (string, bool) {
 	return text, result.IsError
 }
 
-// subtract returns a minus b.
 func subtract(a, b []string) []string {
 	drop := make(map[string]bool, len(b))
 	for _, x := range b {
@@ -161,7 +150,6 @@ func subtract(a, b []string) []string {
 	return out
 }
 
-// contains reports whether list has x.
 func contains(list []string, x string) bool {
 	for _, v := range list {
 		if v == x {
@@ -171,7 +159,6 @@ func contains(list []string, x string) bool {
 	return false
 }
 
-// sameSet reports whether a and b hold exactly the same strings.
 func sameSet(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
@@ -188,7 +175,6 @@ func sameSet(a, b []string) bool {
 	return true
 }
 
-// addSiteListRoute serves the fake site list with two pinned rows.
 func addSiteListRoute(fake *fakectrl.Fake) {
 	mux := fake.Handler().(*http.ServeMux)
 	mux.Handle("GET /openapi/v1/{omadacId}/sites", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -201,8 +187,6 @@ func addSiteListRoute(fake *fakectrl.Fake) {
 	}))
 }
 
-// assertSiteRows decodes a site-list JSON payload and pins the two fake
-// rows.
 func assertSiteRows(t *testing.T, text string) {
 	t.Helper()
 	var got struct {
@@ -346,7 +330,6 @@ func startHTTP(t *testing.T, srv *mcpkit.Server) *httptest.Server {
 	return ts
 }
 
-// connectHTTP connects a real SDK MCP client session over streamable HTTP.
 func connectHTTP(t *testing.T, ts *httptest.Server) *mcp.ClientSession {
 	t.Helper()
 	client := mcp.NewClient(&mcp.Implementation{Name: "wire-e2e-http-client", Version: "0.0.0"}, nil)
@@ -394,7 +377,6 @@ func TestStreamableHTTPWholePath(t *testing.T) {
 	}
 	assertSiteRows(t, text)
 
-	// Flip the fixture: OMADA_ENABLE_DISPATCH=true → dispatch tools appear.
 	srv2, _ := buildServer(t, map[string]string{
 		config.EnvTransport:      config.TransportStreamableHTTP,
 		config.EnvEnableDispatch: "true",

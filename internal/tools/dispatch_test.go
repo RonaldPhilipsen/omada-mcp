@@ -2,7 +2,7 @@
 // ops_call), the escape hatch over the full generated operation index.
 // Each test drives a real mcpkit server over the SDK's in-memory transport
 // pair against a real fake controller (no mocks of the client or the
-// transport), the same pattern as the curated-group tests.
+// transport).
 package tools_test
 
 import (
@@ -41,7 +41,6 @@ func newBaseWithReadOnly(t *testing.T, readOnly bool) (*tools.Base, *fakectrl.Fa
 	return &tools.Base{Omc: c, Cfg: cfg}, fake
 }
 
-// opHit mirrors one ops_lookup result row.
 type opHit struct {
 	ID       string `json:"id"`
 	Method   string `json:"method"`
@@ -51,13 +50,10 @@ type opHit struct {
 	Mutating bool   `json:"mutating"`
 }
 
-// dispatchTools returns the two dispatch tools from b.
 func dispatchTools(b *tools.Base) []mcpkit.Tool {
 	return []mcpkit.Tool{b.OpsLookup(), b.OpsCall()}
 }
 
-// nonTokenRequests returns the captured requests that are not the token
-// endpoint, i.e. the actual API route hits.
 func nonTokenRequests(reqs []fakectrl.Entry) []fakectrl.Entry {
 	var out []fakectrl.Entry
 	for _, r := range reqs {
@@ -68,8 +64,6 @@ func nonTokenRequests(reqs []fakectrl.Entry) []fakectrl.Entry {
 	return out
 }
 
-// lookupHits calls ops_lookup with the given args and decodes the JSON
-// array of hits from the result content.
 func lookupHits(t *testing.T, cs *mcp.ClientSession, args map[string]any) []opHit {
 	t.Helper()
 	result, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "ops_lookup", Arguments: args})
@@ -111,7 +105,6 @@ func TestOpsLookupKeywordAndTag(t *testing.T) {
 		t.Errorf("keyword 'site list' did not find getSiteList; hits = %+v", hits)
 	}
 
-	// The tag filter narrows exclusively to the exact tag.
 	tagHits := lookupHits(t, cs, map[string]any{"tag": "Site", "limit": 50})
 	if len(tagHits) == 0 {
 		t.Fatal("tag 'Site' found no ops")
@@ -191,7 +184,7 @@ func TestOpsCallGetSuccess(t *testing.T) {
 	}
 }
 
-// TestOpsCallReadOnlyRejectsMutating pins Review Focus 2: with
+// TestOpsCallReadOnlyRejectsMutating pins read-only rejection: with
 // ReadOnly=true a mutating op is rejected as a tool error whose text
 // contains both "read-only" and the operation id, BEFORE any HTTP request
 // reaches the fake controller (zero non-token route hits).

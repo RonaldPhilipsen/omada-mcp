@@ -13,7 +13,6 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/omadaclient"
 )
 
-// VpnList returns the omada_vpn_list tool: every VPN in a site.
 func (b *Base) VpnList() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_vpn_list",
@@ -48,8 +47,6 @@ func (b *Base) VpnList() mcpkit.Tool {
 	}
 }
 
-// VpnS2sList returns the omada_vpn_s2s_list tool: every site-to-site VPN in
-// a site.
 func (b *Base) VpnS2sList() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_vpn_s2s_list",
@@ -84,8 +81,6 @@ func (b *Base) VpnS2sList() mcpkit.Tool {
 	}
 }
 
-// VpnC2sServersList returns the omada_vpn_c2s_servers_list tool: every
-// client-to-site VPN server in a site.
 func (b *Base) VpnC2sServersList() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_vpn_c2s_servers_list",
@@ -120,9 +115,8 @@ func (b *Base) VpnC2sServersList() mcpkit.Tool {
 	}
 }
 
-// vpnS2sModifyIn is the omada_vpn_s2s_modify argument object. The body
-// mirrors the Omada request type vpn.SiteToSiteVpn (the generated
-// vpn.ModifySiteToSiteVpnJSONRequestBody).
+// vpnS2sModifyIn's body mirrors the Omada request type vpn.SiteToSiteVpn
+// (the generated vpn.ModifySiteToSiteVpnJSONRequestBody).
 type vpnS2sModifyIn struct {
 	OmacIDArg
 	SiteID string            `json:"site_id"`
@@ -130,9 +124,9 @@ type vpnS2sModifyIn struct {
 	Body   vpn.SiteToSiteVpn `json:"body"`
 }
 
-// VpnS2sModify returns the omada_vpn_s2s_modify tool: modify a site-to-site
-// VPN by ID. The body mirrors the Omada request type; name, siteVpnType,
-// and status are the required minimum set.
+// VpnS2sModify returns the omada_vpn_s2s_modify tool. The body mirrors the
+// Omada request type; name, siteVpnType, and status are the required
+// minimum set.
 func (b *Base) VpnS2sModify() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_vpn_s2s_modify",

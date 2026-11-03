@@ -13,8 +13,6 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/omadaclient"
 )
 
-// LanNetworksList returns the omada_lan_networks_list tool: every LAN
-// network in a site.
 func (b *Base) LanNetworksList() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_lan_networks_list",
@@ -49,16 +47,12 @@ func (b *Base) LanNetworksList() mcpkit.Tool {
 	}
 }
 
-// networkIDIn is the argument object for LAN network tools that take a
-// site_id and a network_id.
 type networkIDIn struct {
 	OmacIDArg
 	SiteID    string `json:"site_id"`
 	NetworkID string `json:"network_id"`
 }
 
-// networkIDSchema is the input schema for LAN network tools that take a
-// site_id and a network_id.
 func networkIDSchema() map[string]any {
 	return objectSchema(map[string]any{
 		"omadac_id":  prop("string", "Omada controller ID; defaults to the configured OMADA_OMADAC_ID."),
@@ -79,8 +73,6 @@ func validateNetworkID(in *networkIDIn) error {
 	return nil
 }
 
-// LanNetworkGet returns the omada_lan_network_get tool: one LAN network's
-// full entity by ID.
 func (b *Base) LanNetworkGet() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_lan_network_get",
@@ -115,18 +107,17 @@ func (b *Base) LanNetworkGet() mcpkit.Tool {
 	}
 }
 
-// lanNetworkCreateIn is the omada_lan_network_create argument object. The
-// body mirrors the Omada request type lan.LanNetworkOpenApiVO (the
-// generated lan.CreateLanNetworkJSONRequestBody).
+// lanNetworkCreateIn's body mirrors the Omada request type
+// lan.LanNetworkOpenApiVO (the generated lan.CreateLanNetworkJSONRequestBody).
 type lanNetworkCreateIn struct {
 	OmacIDArg
 	SiteID string                  `json:"site_id"`
 	Body   lan.LanNetworkOpenApiVO `json:"body"`
 }
 
-// LanNetworkCreate returns the omada_lan_network_create tool: create a new
-// LAN network. The body mirrors the Omada request type; name and purpose
-// are the required minimum set.
+// LanNetworkCreate returns the omada_lan_network_create tool. The body
+// mirrors the Omada request type; name and purpose are the required
+// minimum set.
 func (b *Base) LanNetworkCreate() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_lan_network_create",
@@ -166,8 +157,6 @@ func (b *Base) LanNetworkCreate() mcpkit.Tool {
 	}
 }
 
-// LanNetworkDelete returns the omada_lan_network_delete tool: delete a LAN
-// network by ID.
 func (b *Base) LanNetworkDelete() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_lan_network_delete",
@@ -203,8 +192,7 @@ func (b *Base) LanNetworkDelete() mcpkit.Tool {
 	}
 }
 
-// dhcpListIn is the omada_dhcp_list argument object. page defaults to 1 and
-// page_size to 20.
+// dhcpListIn's page defaults to 1 and page_size to 20.
 type dhcpListIn struct {
 	OmacIDArg
 	SiteID   string `json:"site_id"`
@@ -212,8 +200,8 @@ type dhcpListIn struct {
 	PageSize int    `json:"page_size,omitempty"`
 }
 
-// DhcpList returns the omada_dhcp_list tool: the paged list of DHCP
-// reservations in a site. page defaults to 1 and page_size to 20.
+// DhcpList returns the omada_dhcp_list tool. page defaults to 1 and
+// page_size to 20.
 func (b *Base) DhcpList() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_dhcp_list",

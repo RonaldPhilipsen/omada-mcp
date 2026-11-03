@@ -9,7 +9,6 @@ import (
 	"strings"
 )
 
-// Environment variable names.
 const (
 	EnvBaseURL        = "OMADA_BASE_URL"
 	EnvClientID       = "OMADA_CLIENT_ID"
@@ -23,13 +22,11 @@ const (
 	EnvPort           = "OMADA_PORT"
 )
 
-// Transport values for Config.Transport.
 const (
 	TransportStreamableHTTP = "streamable-http"
 	TransportStdio          = "stdio"
 )
 
-// Config is the fully resolved runtime configuration.
 type Config struct {
 	BaseURL, OmadacID, ClientID, ClientSecret string
 	InsecureTLS                               bool

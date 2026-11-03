@@ -1,7 +1,6 @@
 // Package tools_test pins the curated lan group. Each test drives a real
 // mcpkit server over the SDK's in-memory transport pair against a real fake
-// controller (no mocks of the client or the transport), mirroring the site
-// group's pattern exemplar.
+// controller (no mocks of the client or the transport).
 package tools_test
 
 import (
@@ -18,7 +17,6 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/tools"
 )
 
-// allLanTools returns the five curated lan tools from b.
 func allLanTools(b *tools.Base) []mcpkit.Tool {
 	return []mcpkit.Tool{b.LanNetworksList(), b.LanNetworkGet(), b.LanNetworkCreate(), b.LanNetworkDelete(), b.DhcpList()}
 }
@@ -334,7 +332,6 @@ func TestLanMissingRequiredSiteID(t *testing.T) {
 	before := len(fake.Requests())
 	cs := newSession(t, mcpkit.Options{ReadOnly: false}, allLanTools(b)...)
 
-	// Missing site_id.
 	result, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "omada_lan_network_get"})
 	if err == nil {
 		text, _ := toolText(result)
@@ -344,7 +341,6 @@ func TestLanMissingRequiredSiteID(t *testing.T) {
 		t.Errorf("omada_lan_network_get: tool error %q does not name the missing site_id", err)
 	}
 
-	// Present site_id, missing network_id.
 	result, err = cs.CallTool(context.Background(), &mcp.CallToolParams{
 		Name:      "omada_lan_network_get",
 		Arguments: map[string]any{"site_id": "site-1"},

@@ -13,8 +13,8 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/omadaclient"
 )
 
-// clientListIn is the omada_client_list argument object. The body mirrors
-// the Omada query type client.ClientQueryDataOpenApiVO (the generated
+// clientListIn's body mirrors the Omada query type
+// client.ClientQueryDataOpenApiVO (the generated
 // client.GetGridAllClientsJSONRequestBody); page and page_size default to
 // 1 and 20.
 type clientListIn struct {
@@ -23,8 +23,8 @@ type clientListIn struct {
 	Body   client.ClientQueryDataOpenApiVO `json:"body,omitempty"`
 }
 
-// ClientList returns the omada_client_list tool: the paged grid of all
-// clients in a site. page defaults to 1 and page_size to 20.
+// ClientList returns the omada_client_list tool. page defaults to 1 and
+// page_size to 20.
 func (b *Base) ClientList() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_client_list",
@@ -69,16 +69,12 @@ func (b *Base) ClientList() mcpkit.Tool {
 	}
 }
 
-// clientMacIn is the argument object shared by the per-client-mac client
-// tools (get, block, unblock, reconnect).
 type clientMacIn struct {
 	OmacIDArg
 	SiteID    string `json:"site_id"`
 	ClientMac string `json:"client_mac"`
 }
 
-// clientMacSchema is the input schema shared by the per-client-mac client
-// tools.
 func clientMacSchema() map[string]any {
 	return objectSchema(map[string]any{
 		"omadac_id":  prop("string", "Omada controller ID; defaults to the configured OMADA_OMADAC_ID."),
@@ -99,8 +95,6 @@ func validateClientMac(in *clientMacIn) error {
 	return nil
 }
 
-// ClientGet returns the omada_client_get tool: one client's full entity by
-// MAC address.
 func (b *Base) ClientGet() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_client_get",
@@ -135,8 +129,6 @@ func (b *Base) ClientGet() mcpkit.Tool {
 	}
 }
 
-// ClientBlock returns the omada_client_block tool: block a client by MAC
-// address in a site.
 func (b *Base) ClientBlock() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_client_block",
@@ -172,8 +164,6 @@ func (b *Base) ClientBlock() mcpkit.Tool {
 	}
 }
 
-// ClientUnblock returns the omada_client_unblock tool: unblock a client by
-// MAC address in a site.
 func (b *Base) ClientUnblock() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_client_unblock",
@@ -209,8 +199,6 @@ func (b *Base) ClientUnblock() mcpkit.Tool {
 	}
 }
 
-// ClientReconnect returns the omada_client_reconnect tool: reconnect a
-// client by MAC address in a site.
 func (b *Base) ClientReconnect() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_client_reconnect",

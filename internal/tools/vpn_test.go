@@ -1,7 +1,6 @@
 // Package tools_test pins the curated vpn group. Each test drives a real
 // mcpkit server over the SDK's in-memory transport pair against a real fake
-// controller (no mocks of the client or the transport), mirroring the site
-// group's pattern exemplar.
+// controller (no mocks of the client or the transport).
 package tools_test
 
 import (
@@ -18,7 +17,6 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/tools"
 )
 
-// allVpnTools returns the four curated vpn tools from b.
 func allVpnTools(b *tools.Base) []mcpkit.Tool {
 	return []mcpkit.Tool{b.VpnList(), b.VpnS2sList(), b.VpnC2sServersList(), b.VpnS2sModify()}
 }
@@ -299,7 +297,6 @@ func TestVpnMissingRequiredSiteID(t *testing.T) {
 	before := len(fake.Requests())
 	cs := newSession(t, mcpkit.Options{ReadOnly: false}, allVpnTools(b)...)
 
-	// Missing site_id.
 	result, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "omada_vpn_s2s_modify"})
 	if err == nil {
 		text, _ := toolText(result)
@@ -309,7 +306,6 @@ func TestVpnMissingRequiredSiteID(t *testing.T) {
 		t.Errorf("omada_vpn_s2s_modify: tool error %q does not name the missing site_id", err)
 	}
 
-	// Present site_id, missing vpn_id.
 	result, err = cs.CallTool(context.Background(), &mcp.CallToolParams{
 		Name:      "omada_vpn_s2s_modify",
 		Arguments: map[string]any{"site_id": "site-1"},

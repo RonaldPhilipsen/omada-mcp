@@ -59,8 +59,6 @@ func TestNewBuildsClientInsecureTLS(t *testing.T) {
 		t.Fatal("HTTPClient() = nil, want the module's auth client")
 	}
 
-	// The built client is usable against fakectrl: a full round trip
-	// through the auth transport (token fetch) and the envelope.
 	resp, err := c.CloudAPI().Site().GetSiteList(context.Background(), "omac-123", nil)
 	if err != nil {
 		t.Fatalf("GetSiteList: %v", err)
@@ -174,7 +172,6 @@ func TestEnvelopeSuccessDecodesResult(t *testing.T) {
 	}
 }
 
-// envelopeResponse builds a 200 *http.Response with the given body.
 func envelopeResponse(body string) *http.Response {
 	return &http.Response{
 		StatusCode: http.StatusOK,
@@ -250,8 +247,6 @@ func TestNewInsecureTLSPassthrough(t *testing.T) {
 		t.Fatalf("status = %d, want 200", resp.StatusCode)
 	}
 
-	// Without the flag, the same controller must fail certificate
-	// verification at the preflight.
 	cfg.InsecureTLS = false
 	if _, err := New(cfg); err == nil {
 		t.Fatal("New without InsecureTLS succeeded, want certificate error")

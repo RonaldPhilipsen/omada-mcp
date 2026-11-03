@@ -16,8 +16,6 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/config"
 )
 
-// Client wraps the generated northbound cloud.Client for on-prem
-// controller use.
 type Client struct {
 	*cloud.Client
 	base     string
@@ -51,17 +49,14 @@ func New(cfg config.Config) (*Client, error) {
 	return &Client{Client: cl, base: cfg.BaseURL, omadacID: cfg.OmadacID}, nil
 }
 
-// CloudAPI returns the wrapped generated client.
 func (c *Client) CloudAPI() *cloud.Client {
 	return c.Client
 }
 
-// BaseURL returns the configured controller base URL.
 func (c *Client) BaseURL() string {
 	return c.base
 }
 
-// OmadacID returns the configured omadac ID.
 func (c *Client) OmadacID() string {
 	return c.omadacID
 }

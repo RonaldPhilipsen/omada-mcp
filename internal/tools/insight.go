@@ -37,7 +37,6 @@ func timeRangeProps() map[string]any {
 	}
 }
 
-// insightOverviewIn is the omada_insight_overview argument object.
 type insightOverviewIn struct {
 	OmacIDArg
 	SiteID    string `json:"site_id"`
@@ -45,8 +44,7 @@ type insightOverviewIn struct {
 	EndTime   int64  `json:"end_time,omitempty"`
 }
 
-// InsightOverview returns the omada_insight_overview tool: the anomaly
-// overview statistics for a site over a time range. The time range
+// InsightOverview returns the omada_insight_overview tool. The time range
 // defaults to the last 7 days.
 func (b *Base) InsightOverview() mcpkit.Tool {
 	props := map[string]any{
@@ -93,8 +91,6 @@ func (b *Base) InsightOverview() mcpkit.Tool {
 	}
 }
 
-// InsightUnresolvedCount returns the omada_insight_unresolved_count tool:
-// the count of unresolved incidents in a site.
 func (b *Base) InsightUnresolvedCount() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_insight_unresolved_count",
@@ -129,8 +125,8 @@ func (b *Base) InsightUnresolvedCount() mcpkit.Tool {
 	}
 }
 
-// insightIncidentsIn is the omada_insight_incidents argument object. page
-// defaults to 1, page_size to 20, and the time range to the last 7 days.
+// insightIncidentsIn's page defaults to 1, page_size to 20, and the time
+// range to the last 7 days.
 type insightIncidentsIn struct {
 	OmacIDArg
 	SiteID    string `json:"site_id"`
@@ -140,9 +136,8 @@ type insightIncidentsIn struct {
 	EndTime   int64  `json:"end_time,omitempty"`
 }
 
-// InsightIncidents returns the omada_insight_incidents tool: the paged list
-// of incidents in a site over a time range. page defaults to 1, page_size
-// to 20, and the time range to the last 7 days.
+// InsightIncidents returns the omada_insight_incidents tool. page defaults
+// to 1, page_size to 20, and the time range to the last 7 days.
 func (b *Base) InsightIncidents() mcpkit.Tool {
 	props := map[string]any{
 		"omadac_id": prop("string", "Omada controller ID; defaults to the configured OMADA_OMADAC_ID."),

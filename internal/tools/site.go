@@ -1,18 +1,6 @@
 // Package tools is the omada-mcp MCP tool catalog. Each curated group
 // (site, client, device, ...) is one file that exports one mcpkit.Tool
-// constructor per operation, all built on the shared Base. The site file
-// is the pattern exemplar every later curated-group file copies:
-//
-//  1. a per-tool In struct with OmacIDArg embedded (json tags per the
-//     group's inventory table);
-//  2. an mcpkit.Tool with Group, Mutating, a Register that sets the
-//     input schema, and a Handler;
-//  3. the Handler: decode args with mcpkit.OnArgs, validate required
-//     fields BEFORE any HTTP, resolve the omadac ID with ResolveOmac,
-//     call the generated client's non-WithResponse method,
-//     defer resp.Body.Close(), decode the northbound envelope with
-//     omadaclient.Envelope, and return the result payload via
-//     mcpkit.JSONResult.
+// constructor per operation, all built on the shared Base.
 package tools
 
 import (
@@ -29,21 +17,15 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/omadaclient"
 )
 
-// Base carries the shared controller client and resolved config for
-// every tool constructor.
 type Base struct {
 	Omc *omadaclient.Client
 	Cfg config.Config
 }
 
-// OmacIDArg is the optional omadac_id argument shared by every tool.
 type OmacIDArg struct {
 	OmadacID string `json:"omadac_id,omitempty"`
 }
 
-// ResolveOmac returns in.OmadacID when it is set, otherwise the
-// configured OMADA_OMADAC_ID (b.Omc.OmadacID()). It errors when the
-// resolved ID would be blank.
 func (b *Base) ResolveOmac(in OmacIDArg) (omadacID string, err error) {
 	id := in.OmadacID
 	if id == "" {
@@ -55,9 +37,6 @@ func (b *Base) ResolveOmac(in OmacIDArg) (omadacID string, err error) {
 	return id, nil
 }
 
-// objectSchema returns a JSON schema for a tool input: a type object with
-// the given properties, the given required fields, and no additional
-// properties.
 func objectSchema(properties map[string]any, required ...string) map[string]any {
 	schema := map[string]any{
 		"type":                 "object",
@@ -70,15 +49,10 @@ func objectSchema(properties map[string]any, required ...string) map[string]any 
 	return schema
 }
 
-// prop returns a JSON schema property object for a field: its type and
-// description.
 func prop(typ, description string) map[string]any {
 	return map[string]any{"type": typ, "description": description}
 }
 
-// resultPayload returns the decoded envelope result for the tool result:
-// the raw result JSON, or an empty object when the controller sent no
-// result (null or absent).
 func resultPayload(result json.RawMessage) any {
 	if len(result) == 0 || string(result) == "null" {
 		return map[string]any{}
@@ -86,15 +60,14 @@ func resultPayload(result json.RawMessage) any {
 	return result
 }
 
-// siteListIn is the omada_site_list argument object.
 type siteListIn struct {
 	OmacIDArg
 	Page     int `json:"page,omitempty"`
 	PageSize int `json:"page_size,omitempty"`
 }
 
-// SiteList returns the omada_site_list tool: the paged list of sites in
-// the controller. page defaults to 1 and page_size to 20.
+// SiteList returns the omada_site_list tool. page defaults to 1 and
+// page_size to 20.
 func (b *Base) SiteList() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_site_list",
@@ -139,13 +112,11 @@ func (b *Base) SiteList() mcpkit.Tool {
 	}
 }
 
-// siteGetIn is the omada_site_get argument object.
 type siteGetIn struct {
 	OmacIDArg
 	SiteID string `json:"site_id"`
 }
 
-// SiteGet returns the omada_site_get tool: one site's full entity by ID.
 func (b *Base) SiteGet() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_site_get",
@@ -183,17 +154,16 @@ func (b *Base) SiteGet() mcpkit.Tool {
 	}
 }
 
-// siteCreateIn is the omada_site_create argument object. Body mirrors
-// the Omada request type site.CreateSiteEntity (the generated
-// site.CreateNewSiteJSONRequestBody).
+// siteCreateIn's body mirrors the Omada request type site.CreateSiteEntity
+// (the generated site.CreateNewSiteJSONRequestBody).
 type siteCreateIn struct {
 	OmacIDArg
 	Body site.CreateSiteEntity `json:"body"`
 }
 
-// SiteCreate returns the omada_site_create tool: create a new site. The
-// body mirrors the Omada request type; name, region, scenario, and
-// timeZone are the recommended minimum set.
+// SiteCreate returns the omada_site_create tool. The body mirrors the
+// Omada request type; name, region, scenario, and timeZone are the
+// recommended minimum set.
 func (b *Base) SiteCreate() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_site_create",
@@ -229,13 +199,11 @@ func (b *Base) SiteCreate() mcpkit.Tool {
 	}
 }
 
-// siteDeleteIn is the omada_site_delete argument object.
 type siteDeleteIn struct {
 	OmacIDArg
 	SiteID string `json:"site_id"`
 }
 
-// SiteDelete returns the omada_site_delete tool: delete a site by ID.
 func (b *Base) SiteDelete() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_site_delete",

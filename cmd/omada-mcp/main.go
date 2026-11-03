@@ -1,8 +1,5 @@
-// Command omada-mcp is the omada-mcp server binary: configuration from the
-// OMADA_* environment, a preflight-checked Omada client, the curated tool
-// catalog (plus the dispatch escape hatch when enabled), served over stdio
-// or streamable HTTP. All logging goes to stderr; stdout is reserved for
-// the stdio transport.
+// Command omada-mcp is the omada-mcp server binary. All logging goes to
+// stderr; stdout is reserved for the stdio transport.
 package main
 
 import (

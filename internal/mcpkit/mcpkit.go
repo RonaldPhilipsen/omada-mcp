@@ -1,7 +1,6 @@
 // Package mcpkit is the omada-mcp MCP plumbing: server construction,
 // tool registration with read-only and group gating, and arg/result
-// helpers shared by every tool. It wraps the official
-// github.com/modelcontextprotocol/go-sdk mcp package.
+// helpers shared by every tool.
 package mcpkit
 
 import (
@@ -20,7 +19,6 @@ import (
 // ("-X github.com/RonaldPhilipsen/omada-mcp/internal/mcpkit.Version=...").
 var Version = "0.1.0"
 
-// Options gates which tools a Server exposes.
 type Options struct {
 	// ReadOnly hides every mutating tool from clients entirely
 	// (gating happens at registration, not at call time).
@@ -30,15 +28,11 @@ type Options struct {
 	ToolGroups []string
 }
 
-// HandlerFunc handles a tool call with the raw JSON arguments of the
-// request.
 type HandlerFunc func(context.Context, *Args) (*mcp.CallToolResult, error)
 
 // Tool describes an omada-mcp tool in an SDK-independent way.
 type Tool struct {
-	// Name is the tool name, "omada_..." / "ops_...".
-	Name string
-	// Description is the human-readable tool description.
+	Name        string
 	Description string
 	// Group matches config.ToolGroups entries; "" == always present.
 	Group string
@@ -49,11 +43,9 @@ type Tool struct {
 	// added to the server, for extra ToolOption building (schemas,
 	// annotations). It must leave Name set.
 	Register func(*mcp.Tool)
-	// Handler handles tool calls.
-	Handler HandlerFunc
+	Handler  HandlerFunc
 }
 
-// Server is the omada-mcp MCP server core.
 type Server struct {
 	mcp  *mcp.Server
 	opts Options
@@ -61,7 +53,6 @@ type Server struct {
 	all []Tool
 }
 
-// NewServer creates a Server exposing tools according to opt.
 func NewServer(name string, opt Options) *Server {
 	return &Server{
 		mcp:  mcp.NewServer(&mcp.Implementation{Name: name, Version: Version}, nil),
@@ -69,8 +60,6 @@ func NewServer(name string, opt Options) *Server {
 	}
 }
 
-// groupAllowed reports whether a tool with the given group may be exposed.
-// The empty group is always present; nil groups means all groups.
 func groupAllowed(group string, groups []string) bool {
 	if group == "" || groups == nil {
 		return true
@@ -117,15 +106,12 @@ func (s *Server) Tools() []Tool {
 	return append([]Tool(nil), s.all...)
 }
 
-// MCPServer returns the underlying SDK server.
 func (s *Server) MCPServer() *mcp.Server {
 	return s.mcp
 }
 
-// Args is the raw JSON object of tool arguments.
 type Args = json.RawMessage
 
-// OnArgs decodes tool args JSON object into T.
 func OnArgs[T any](a *Args) (*T, error) {
 	var out T
 	if err := json.Unmarshal(*a, &out); err != nil {
@@ -134,7 +120,6 @@ func OnArgs[T any](a *Args) (*T, error) {
 	return &out, nil
 }
 
-// JSONResult returns a tool result with v marshaled as JSON text content.
 func JSONResult(v any) (*mcp.CallToolResult, error) {
 	b, err := json.Marshal(v)
 	if err != nil {

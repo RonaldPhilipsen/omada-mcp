@@ -260,8 +260,6 @@ func TestFromEnv(t *testing.T) {
 	}
 }
 
-// mutate returns a copy of c with fn applied to it, so each case keeps
-// its own expected value.
 func mutate(c config.Config, fn func(*config.Config)) config.Config {
 	out := c
 	fn(&out)

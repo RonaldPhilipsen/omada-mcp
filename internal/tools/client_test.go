@@ -1,7 +1,6 @@
 // Package tools_test pins the curated client group. Each test drives a
 // real mcpkit server over the SDK's in-memory transport pair against a
-// real fake controller (no mocks of the client or the transport),
-// mirroring the site group's pattern exemplar.
+// real fake controller (no mocks of the client or the transport).
 package tools_test
 
 import (
@@ -18,7 +17,6 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/tools"
 )
 
-// allClientTools returns the five curated client tools from b.
 func allClientTools(b *tools.Base) []mcpkit.Tool {
 	return []mcpkit.Tool{b.ClientList(), b.ClientGet(), b.ClientBlock(), b.ClientUnblock(), b.ClientReconnect()}
 }
@@ -319,7 +317,6 @@ func TestClientMissingRequiredSiteID(t *testing.T) {
 	before := len(fake.Requests())
 	cs := newSession(t, mcpkit.Options{ReadOnly: false}, allClientTools(b)...)
 
-	// Missing site_id.
 	result, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "omada_client_get"})
 	if err == nil {
 		text, _ := toolText(result)
@@ -329,7 +326,6 @@ func TestClientMissingRequiredSiteID(t *testing.T) {
 		t.Errorf("omada_client_get: tool error %q does not name the missing site_id", err)
 	}
 
-	// Present site_id, missing client_mac.
 	result, err = cs.CallTool(context.Background(), &mcp.CallToolParams{
 		Name:      "omada_client_get",
 		Arguments: map[string]any{"site_id": "site-1"},

@@ -1,7 +1,6 @@
-// Package tools_test pins the curated site group: the pattern exemplar
-// every later curated-group task copies. Each test drives a real mcpkit
-// server over the SDK's in-memory transport pair against a real fake
-// controller (no mocks of the client or the transport).
+// Package tools_test pins the curated site group. Each test drives a real
+// mcpkit server over the SDK's in-memory transport pair against a real
+// fake controller (no mocks of the client or the transport).
 package tools_test
 
 import (
@@ -24,8 +23,6 @@ import (
 // with; tools that omit omadac_id must fall back to it.
 const omadacConfigured = "omac-123"
 
-// newBase builds a tools.Base whose controller is a fake controller with
-// the configured omadac ID omadacConfigured.
 func newBase(t *testing.T) (*tools.Base, *fakectrl.Fake) {
 	t.Helper()
 	fake := fakectrl.New(t)
@@ -42,14 +39,12 @@ func newBase(t *testing.T) (*tools.Base, *fakectrl.Fake) {
 	return &tools.Base{Omc: c, Cfg: cfg}, fake
 }
 
-// allSiteTools returns the four curated site tools from b.
 func allSiteTools(b *tools.Base) []mcpkit.Tool {
 	return []mcpkit.Tool{b.SiteList(), b.SiteGet(), b.SiteCreate(), b.SiteDelete()}
 }
 
-// newSession wires the real server under test to a real SDK client
-// session through the SDK's in-memory transport pair (same pattern as
-// the mcpkit tests).
+// newSession wires the real server under test to a real SDK client session
+// through the SDK's in-memory transport pair.
 func newSession(t *testing.T, opt mcpkit.Options, tool ...mcpkit.Tool) *mcp.ClientSession {
 	t.Helper()
 
@@ -74,7 +69,6 @@ func newSession(t *testing.T, opt mcpkit.Options, tool ...mcpkit.Tool) *mcp.Clie
 	return cs
 }
 
-// toolText concatenates the text content of a result and reports IsError.
 func toolText(result *mcp.CallToolResult) (string, bool) {
 	var text string
 	for _, c := range result.Content {
@@ -85,7 +79,6 @@ func toolText(result *mcp.CallToolResult) (string, bool) {
 	return text, result.IsError
 }
 
-// entryFor finds the captured request with the given path.
 func entryFor(t *testing.T, reqs []fakectrl.Entry, path string) *fakectrl.Entry {
 	t.Helper()
 	for i := range reqs {
@@ -146,7 +139,7 @@ func TestSiteListRoundTrip(t *testing.T) {
 	}
 }
 
-// TestSiteListZeroArgsDefaults pins Review Focus 4: an empty-args call
+// TestSiteListZeroArgsDefaults pins zero-args defaults: an empty-args call
 // falls back to the configured omadac ID and ships the default paging
 // query page=1&pageSize=20.
 func TestSiteListZeroArgsDefaults(t *testing.T) {

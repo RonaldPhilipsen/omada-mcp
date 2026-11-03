@@ -13,8 +13,7 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/omadaclient"
 )
 
-// deviceListIn is the omada_device_list argument object. page defaults to
-// 1 and page_size to 20.
+// deviceListIn's page defaults to 1 and page_size to 20.
 type deviceListIn struct {
 	OmacIDArg
 	SiteID   string `json:"site_id"`
@@ -22,8 +21,8 @@ type deviceListIn struct {
 	PageSize int    `json:"page_size,omitempty"`
 }
 
-// DeviceList returns the omada_device_list tool: the paged list of devices
-// in a site. page defaults to 1 and page_size to 20.
+// DeviceList returns the omada_device_list tool. page defaults to 1 and
+// page_size to 20.
 func (b *Base) DeviceList() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_device_list",
@@ -72,15 +71,11 @@ func (b *Base) DeviceList() mcpkit.Tool {
 	}
 }
 
-// siteOnlyIn is the argument object for site-scoped tools that take only a
-// site_id.
 type siteOnlyIn struct {
 	OmacIDArg
 	SiteID string `json:"site_id"`
 }
 
-// siteOnlySchema is the input schema for site-scoped tools that take only a
-// site_id.
 func siteOnlySchema() map[string]any {
 	return objectSchema(map[string]any{
 		"omadac_id": prop("string", "Omada controller ID; defaults to the configured OMADA_OMADAC_ID."),
@@ -124,15 +119,12 @@ func (b *Base) DevicesBySite() mcpkit.Tool {
 	}
 }
 
-// deviceRebootIn is the omada_device_reboot argument object.
 type deviceRebootIn struct {
 	OmacIDArg
 	SiteID    string `json:"site_id"`
 	DeviceMac string `json:"device_mac"`
 }
 
-// DeviceReboot returns the omada_device_reboot tool: reboot a device by MAC
-// address in a site.
 func (b *Base) DeviceReboot() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_device_reboot",
@@ -175,8 +167,6 @@ func (b *Base) DeviceReboot() mcpkit.Tool {
 	}
 }
 
-// TopologyGet returns the omada_topology_get tool: the site's network
-// topology.
 func (b *Base) TopologyGet() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_topology_get",

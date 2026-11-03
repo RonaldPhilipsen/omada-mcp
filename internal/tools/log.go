@@ -13,9 +13,8 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/omadaclient"
 )
 
-// logQueryIn is the argument object shared by the log tools (alerts,
-// events). page defaults to 1, page_size to 20, and the time range to the
-// last 7 days.
+// logQueryIn is shared by the log tools (alerts, events). page defaults to
+// 1, page_size to 20, and the time range to the last 7 days.
 type logQueryIn struct {
 	OmacIDArg
 	SiteID    string `json:"site_id"`
@@ -25,7 +24,6 @@ type logQueryIn struct {
 	EndTime   int64  `json:"end_time,omitempty"`
 }
 
-// logQueryProps returns the JSON schema properties for the log tools.
 func logQueryProps() map[string]any {
 	props := map[string]any{
 		"omadac_id": prop("string", "Omada controller ID; defaults to the configured OMADA_OMADAC_ID."),
@@ -39,9 +37,8 @@ func logQueryProps() map[string]any {
 	return props
 }
 
-// LogAlerts returns the omada_log_alerts tool: the paged list of alert logs
-// in a site over a time range. page defaults to 1, page_size to 20, and the
-// time range to the last 7 days.
+// LogAlerts returns the omada_log_alerts tool. page defaults to 1,
+// page_size to 20, and the time range to the last 7 days.
 func (b *Base) LogAlerts() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_log_alerts",
@@ -88,9 +85,8 @@ func (b *Base) LogAlerts() mcpkit.Tool {
 	}
 }
 
-// LogEvents returns the omada_log_events tool: the paged list of event logs
-// in a site over a time range. page defaults to 1, page_size to 20, and the
-// time range to the last 7 days.
+// LogEvents returns the omada_log_events tool. page defaults to 1,
+// page_size to 20, and the time range to the last 7 days.
 func (b *Base) LogEvents() mcpkit.Tool {
 	return mcpkit.Tool{
 		Name:        "omada_log_events",

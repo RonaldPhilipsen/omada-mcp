@@ -26,14 +26,12 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/opsindex"
 )
 
-// OpsLookupIn is the ops_lookup argument object.
 type OpsLookupIn struct {
 	Keyword string `json:"keyword,omitempty"`
 	Tag     string `json:"tag,omitempty"`
 	Limit   int    `json:"limit,omitempty"` // default 10, cap 50
 }
 
-// OpsCallIn is the ops_call argument object.
 type OpsCallIn struct {
 	OperationID string            `json:"operation_id"` // required
 	PathParams  map[string]string `json:"path_params,omitempty"`
@@ -41,7 +39,6 @@ type OpsCallIn struct {
 	Body        json.RawMessage   `json:"body,omitempty"`
 }
 
-// pathParamRe matches a single {placeholder} in an operation path.
 var pathParamRe = regexp.MustCompile(`\{([A-Za-z0-9_]+)\}`)
 
 // OpsLookup returns the ops_lookup tool: a read-only search over the
@@ -92,8 +89,6 @@ func (b *Base) OpsLookup() mcpkit.Tool {
 	}
 }
 
-// opMatchesKeyword reports whether kw (already non-empty) is a
-// case-insensitive substring of the op's id, summary, or tag.
 func opMatchesKeyword(op opsindex.Op, kw string) bool {
 	kw = strings.ToLower(kw)
 	return strings.Contains(strings.ToLower(op.ID), kw) ||
@@ -101,7 +96,6 @@ func opMatchesKeyword(op opsindex.Op, kw string) bool {
 		strings.Contains(strings.ToLower(op.Tag), kw)
 }
 
-// opHit is one ops_lookup result row.
 func opHit(op opsindex.Op) map[string]any {
 	return map[string]any{
 		"id":       op.ID,
@@ -185,10 +179,9 @@ func (b *Base) OpsCall() mcpkit.Tool {
 	}
 }
 
-// fillPath substitutes every {placeholder} in path. {omadacId} falls back
-// to defaultOmadac when not supplied; every other placeholder must be in
-// params. It returns an error naming any unfilled placeholder. Values are
-// URL-escaped (simple style, matching the generated clients).
+// fillPath substitutes every {placeholder} in path; {omadacId} falls back
+// to defaultOmadac. Values are URL-escaped (simple style, matching the
+// generated clients).
 func fillPath(path string, params map[string]string, defaultOmadac string) (string, error) {
 	var missing []string
 	seen := make(map[string]bool)

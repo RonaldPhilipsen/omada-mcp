@@ -1,7 +1,6 @@
 // Package tools_test pins the curated insight group. Each test drives a
 // real mcpkit server over the SDK's in-memory transport pair against a real
-// fake controller (no mocks of the client or the transport), mirroring the
-// site group's pattern exemplar.
+// fake controller (no mocks of the client or the transport).
 package tools_test
 
 import (
@@ -18,7 +17,6 @@ import (
 	"github.com/RonaldPhilipsen/omada-mcp/internal/tools"
 )
 
-// allInsightTools returns the three curated insight tools from b.
 func allInsightTools(b *tools.Base) []mcpkit.Tool {
 	return []mcpkit.Tool{b.InsightOverview(), b.InsightUnresolvedCount(), b.InsightIncidents()}
 }
