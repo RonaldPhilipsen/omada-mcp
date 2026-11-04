@@ -74,7 +74,7 @@ You need Go 1.27.3. Run `go build ./cmd/omada-mcp` to build the binary. Run `go 
 
 Install the toolchain with mise. The project pins Go 1.27.3 and prek in mise.toml. The command `mise install` also installs the pre-commit hooks.
 
-Regenerate the operation index with `make -C gen gen`. The generator fetches the Omada spec and checks its SHA-256 against gen/data/spec.sha256. The generator fails when the values differ.
+Regenerate the operation index with `make gen`. The generator fetches the Omada spec and checks its SHA-256 against gen/data/spec.sha256. The generator fails when the values differ.
 
 ## Releases
 
