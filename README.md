@@ -27,7 +27,7 @@ Read-only mode hides every write tool from the client. Only the literal value `f
 
 ## Tools
 
-A curated tool wraps one named operation from the Omada client. The server ships 35 curated tools in nine groups. The table lists every group and tool. The label (write) marks a tool that changes controller state.
+A curated tool wraps one named operation from the Omada client. The server ships 50 curated tools in ten groups. The table lists every group and tool. The label (write) marks a tool that changes controller state.
 
 | Group | Tools |
 |---|---|
@@ -40,6 +40,7 @@ A curated tool wraps one named operation from the Omada client. The server ships
 | `log` | `omada_log_alerts`, `omada_log_events` |
 | `ap` | `omada_ap_radio_config_get`, `omada_ap_radio_config_modify` (write), `omada_ap_radios_get`, `omada_ap_available_channel_get` |
 | `wireless` | `omada_wireless_wlans_list`, `omada_wireless_ssids_list`, `omada_wireless_ssid_get`, `omada_wireless_ssid_band_steer_modify` (write) |
+| `security` | `omada_acl_gateway_list`, `omada_acl_gateway_create` (write), `omada_acl_gateway_modify` (write), `omada_acl_ap_list`, `omada_acl_ap_create` (write), `omada_acl_ap_modify` (write), `omada_acl_switch_list`, `omada_acl_switch_create` (write), `omada_acl_switch_modify` (write), `omada_acl_delete` (write), `omada_mac_filter_allow_list`, `omada_mac_filter_deny_list`, `omada_mac_filter_add` (write), `omada_mac_filter_remove` (write), `omada_ssid_mac_filter_modify` (write) |
 
 The server hides the write tools in read-only mode. Set `OMADA_TOOL_GROUPS` to expose only the groups that your client needs.
 

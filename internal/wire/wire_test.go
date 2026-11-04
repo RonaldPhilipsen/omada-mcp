@@ -34,6 +34,12 @@ var curatedTools = []string{
 	"omada_log_alerts", "omada_log_events",
 	"omada_ap_radio_config_get", "omada_ap_radio_config_modify", "omada_ap_radios_get", "omada_ap_available_channel_get",
 	"omada_wireless_wlans_list", "omada_wireless_ssids_list", "omada_wireless_ssid_get", "omada_wireless_ssid_band_steer_modify",
+	"omada_acl_gateway_list", "omada_acl_gateway_create", "omada_acl_gateway_modify",
+	"omada_acl_ap_list", "omada_acl_ap_create", "omada_acl_ap_modify",
+	"omada_acl_switch_list", "omada_acl_switch_create", "omada_acl_switch_modify",
+	"omada_acl_delete",
+	"omada_mac_filter_allow_list", "omada_mac_filter_deny_list", "omada_mac_filter_add", "omada_mac_filter_remove",
+	"omada_ssid_mac_filter_modify",
 }
 
 // mutatingTools is the curated subset that read-only mode hides.
@@ -45,6 +51,12 @@ var mutatingTools = []string{
 	"omada_vpn_s2s_modify",
 	"omada_ap_radio_config_modify",
 	"omada_wireless_ssid_band_steer_modify",
+	"omada_acl_gateway_create", "omada_acl_gateway_modify",
+	"omada_acl_ap_create", "omada_acl_ap_modify",
+	"omada_acl_switch_create", "omada_acl_switch_modify",
+	"omada_acl_delete",
+	"omada_mac_filter_add", "omada_mac_filter_remove",
+	"omada_ssid_mac_filter_modify",
 }
 
 // dispatchTools is the escape-hatch pair registered only when
@@ -208,7 +220,7 @@ func assertSiteRows(t *testing.T, text string) {
 }
 
 // TestWriteModeWithDispatch pins the full tool list in write mode with
-// dispatch enabled: all 35 curated tools plus ops_lookup and ops_call.
+// dispatch enabled: all 50 curated tools plus ops_lookup and ops_call.
 func TestWriteModeWithDispatch(t *testing.T) {
 	srv, _ := buildServer(t, map[string]string{
 		config.EnvReadOnly:       "false",

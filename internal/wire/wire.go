@@ -30,6 +30,12 @@ func Build(cfg config.Config, omc *omadaclient.Client) (*mcpkit.Server, error) {
 		b.LogAlerts(), b.LogEvents(),
 		b.ApRadioConfigGet(), b.ApRadioConfigModify(), b.ApRadiosGet(), b.ApAvailableChannelGet(),
 		b.WirelessWlansList(), b.WirelessSsidsList(), b.WirelessSsidGet(), b.WirelessSsidBandSteerModify(),
+		b.AclGatewayList(), b.AclGatewayCreate(), b.AclGatewayModify(),
+		b.AclApList(), b.AclApCreate(), b.AclApModify(),
+		b.AclSwitchList(), b.AclSwitchCreate(), b.AclSwitchModify(),
+		b.AclDelete(),
+		b.MacFilterAllowList(), b.MacFilterDenyList(), b.MacFilterAdd(), b.MacFilterRemove(),
+		b.SsidMacFilterModify(),
 	}
 	for _, tl := range all {
 		s.Register(tl)
