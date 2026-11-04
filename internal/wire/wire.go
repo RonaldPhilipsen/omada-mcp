@@ -28,6 +28,8 @@ func Build(cfg config.Config, omc *omadaclient.Client) (*mcpkit.Server, error) {
 		b.VpnList(), b.VpnS2sList(), b.VpnC2sServersList(), b.VpnS2sModify(),
 		b.InsightOverview(), b.InsightUnresolvedCount(), b.InsightIncidents(),
 		b.LogAlerts(), b.LogEvents(),
+		b.ApRadioConfigGet(), b.ApRadioConfigModify(), b.ApRadiosGet(), b.ApAvailableChannelGet(),
+		b.WirelessWlansList(), b.WirelessSsidsList(), b.WirelessSsidGet(), b.WirelessSsidBandSteerModify(),
 	}
 	for _, tl := range all {
 		s.Register(tl)
