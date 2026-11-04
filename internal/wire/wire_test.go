@@ -32,6 +32,8 @@ var curatedTools = []string{
 	"omada_vpn_list", "omada_vpn_s2s_list", "omada_vpn_c2s_servers_list", "omada_vpn_s2s_modify",
 	"omada_insight_overview", "omada_insight_unresolved_count", "omada_insight_incidents",
 	"omada_log_alerts", "omada_log_events",
+	"omada_ap_radio_config_get", "omada_ap_radio_config_modify", "omada_ap_radios_get", "omada_ap_available_channel_get",
+	"omada_wireless_wlans_list", "omada_wireless_ssids_list", "omada_wireless_ssid_get", "omada_wireless_ssid_band_steer_modify",
 }
 
 // mutatingTools is the curated subset that read-only mode hides.
@@ -41,6 +43,8 @@ var mutatingTools = []string{
 	"omada_device_reboot",
 	"omada_lan_network_create", "omada_lan_network_delete",
 	"omada_vpn_s2s_modify",
+	"omada_ap_radio_config_modify",
+	"omada_wireless_ssid_band_steer_modify",
 }
 
 // dispatchTools is the escape-hatch pair registered only when
@@ -204,7 +208,7 @@ func assertSiteRows(t *testing.T, text string) {
 }
 
 // TestWriteModeWithDispatch pins the full tool list in write mode with
-// dispatch enabled: all 27 curated tools plus ops_lookup and ops_call.
+// dispatch enabled: all 35 curated tools plus ops_lookup and ops_call.
 func TestWriteModeWithDispatch(t *testing.T) {
 	srv, _ := buildServer(t, map[string]string{
 		config.EnvReadOnly:       "false",
