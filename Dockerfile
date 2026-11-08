@@ -26,3 +26,14 @@ COPY --from=build /out/omada-mcp /omada-mcp
 EXPOSE 8080
 
 ENTRYPOINT ["/omada-mcp"]
+
+# OCI image labels. Keep this block last so that changed values only rebuild this step.
+ARG VERSION=0.1.0
+ARG GIT_SHA=unknown
+LABEL \
+    org.opencontainers.image.title="omada-mcp" \
+    org.opencontainers.image.description="MCP server for the TP-Link Omada OpenAPI" \
+    org.opencontainers.image.url="https://github.com/RonaldPhilipsen/omada-mcp" \
+    org.opencontainers.image.source="https://github.com/RonaldPhilipsen/omada-mcp" \
+    org.opencontainers.image.version="${VERSION}" \
+    org.opencontainers.image.revision="${GIT_SHA}"
