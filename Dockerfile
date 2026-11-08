@@ -35,5 +35,6 @@ LABEL \
     org.opencontainers.image.description="MCP server for the TP-Link Omada OpenAPI" \
     org.opencontainers.image.url="https://github.com/RonaldPhilipsen/omada-mcp" \
     org.opencontainers.image.source="https://github.com/RonaldPhilipsen/omada-mcp" \
+    org.opencontainers.image.licenses="MIT" \
     org.opencontainers.image.version="${VERSION}" \
     org.opencontainers.image.revision="${GIT_SHA}"
