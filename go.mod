@@ -3,7 +3,7 @@ module github.com/RonaldPhilipsen/omada-mcp
 go 1.27.3
 
 require (
-	github.com/RonaldPhilipsen/omada v0.2.2
+	github.com/RonaldPhilipsen/omada v0.2.3
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 )
 
@@ -11,7 +11,7 @@ require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/oapi-codegen/runtime v1.8.0 // indirect
+	github.com/oapi-codegen/runtime v1.9.0 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
