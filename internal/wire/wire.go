@@ -39,6 +39,8 @@ func Build(cfg config.Config, omc *omadaclient.Client) (*mcpkit.Server, error) {
 		b.GroupProfileList(), b.GroupProfileCreate(), b.GroupProfileModify(), b.GroupProfileDelete(),
 		b.SwitchPortsOverview(), b.LanProfilesList(), b.SwitchPortModify(),
 		b.ClientIpSettingModify(),
+		b.BonjourServiceList(), b.BonjourServiceCreate(), b.BonjourServiceModify(), b.BonjourServiceDelete(),
+		b.BonjourRuleList(), b.BonjourRuleCreate(), b.BonjourRuleModify(), b.BonjourRuleDelete(),
 	}
 	for _, tl := range all {
 		s.Register(tl)
