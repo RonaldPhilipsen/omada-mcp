@@ -1,6 +1,6 @@
 # omada-mcp
 
-omada-mcp is an MCP server that exposes the TP-Link Omada OpenAPI. An AI client uses the server to inspect and manage an Omada controller. The server is written in Go and built with the official MCP Go SDK. It wraps the client in the [github.com/RonaldPhilipsen/omada](https://github.com/RonaldPhilipsen/omada) module. The project ships a container image to [GHCR](https://ghcr.io/ronaldphilipsen/omada-mcp) for use with [ToolHive](https://github.com/stacklok/toolhive) and other MCP clients.
+omada-mcp is an MCP server that exposes the TP-Link Omada OpenAPI. An AI client uses the server to inspect and manage an Omada controller. The server is a Go program that uses the official MCP Go SDK. It wraps the client in the [github.com/RonaldPhilipsen/omada](https://github.com/RonaldPhilipsen/omada) module. The project ships a container image to [GHCR](https://ghcr.io/ronaldphilipsen/omada-mcp) for use with [ToolHive](https://github.com/stacklok/toolhive) and other MCP clients.
 
 ## Authentication
 
@@ -23,11 +23,11 @@ All configuration uses OMADA_ environment variables, and the server reads no con
 | `OMADA_TRANSPORT` | no | `streamable-http` | `streamable-http` or `stdio` |
 | `OMADA_PORT` | no | `8080` | Listen port for streamable HTTP |
 
-Read-only mode hides every write tool from the client. Only the literal value `false` for `OMADA_READ_ONLY` unlocks the write tools. Do not set `OMADA_READ_ONLY=false` on a controller you do not control. The server can then block clients, delete networks, and reboot devices.
+Read-only mode hides every write tool from the client. The write tools appear only when `OMADA_READ_ONLY` has the exact value `false`. Do not set `OMADA_READ_ONLY=false` on a controller that you do not control. With write tools, a client can block clients, delete networks, and reboot devices.
 
 ## Tools
 
-A curated tool wraps one named operation from the Omada client. The server ships 58 curated tools in eleven groups. The table lists every group and tool. The label (write) marks a tool that changes controller state.
+A curated tool is a tool that wraps one named operation from the Omada client. The table lists every tool group and its tools. The label (write) marks a tool that changes controller state.
 
 | Group | Tools |
 |---|---|
@@ -42,6 +42,7 @@ A curated tool wraps one named operation from the Omada client. The server ships
 | `ap` | `omada_ap_radio_config_get`, `omada_ap_radio_config_modify` (write), `omada_ap_radios_get`, `omada_ap_available_channel_get` |
 | `wireless` | `omada_wireless_wlans_list`, `omada_wireless_ssids_list`, `omada_wireless_ssid_get`, `omada_wireless_ssid_band_steer_modify` (write) |
 | `security` | `omada_acl_gateway_list`, `omada_acl_gateway_create` (write), `omada_acl_gateway_modify` (write), `omada_acl_ap_list`, `omada_acl_ap_create` (write), `omada_acl_ap_modify` (write), `omada_acl_switch_list`, `omada_acl_switch_create` (write), `omada_acl_switch_modify` (write), `omada_acl_delete` (write), `omada_mac_filter_allow_list`, `omada_mac_filter_deny_list`, `omada_mac_filter_add` (write), `omada_mac_filter_remove` (write), `omada_ssid_mac_filter_modify` (write), `omada_group_profile_list`, `omada_group_profile_create` (write), `omada_group_profile_modify` (write), `omada_group_profile_delete` (write) |
+| `bonjour` | `omada_bonjour_service_list`, `omada_bonjour_service_create` (write), `omada_bonjour_service_modify` (write), `omada_bonjour_service_delete` (write), `omada_bonjour_rule_list`, `omada_bonjour_rule_create` (write), `omada_bonjour_rule_modify` (write), `omada_bonjour_rule_delete` (write) |
 
 The server hides the write tools in read-only mode. Set `OMADA_TOOL_GROUPS` to expose only the groups that your client needs.
 
@@ -68,7 +69,7 @@ docker run --rm -p 8080:8080 \
   ghcr.io/ronaldphilipsen/omada-mcp:v0.0.2
 ```
 
-Add `OMADA_INSECURE_TLS=true` when the controller uses a self-signed certificate. Point your MCP client at the `/mcp` endpoint on port 8080. Register the same variables as ToolHive secrets when you run the server in ToolHive.
+If the controller uses a self-signed certificate, add `OMADA_INSECURE_TLS=true`. Point your MCP client at the `/mcp` endpoint on port 8080. If you run the server in ToolHive, register the same variables as ToolHive secrets.
 
 ## Building from source
 
@@ -78,7 +79,7 @@ You need Go 1.27.3. Run `go build ./cmd/omada-mcp` to build the binary. Run `go 
 
 Install the toolchain with mise. The project pins Go 1.27.3 and prek in mise.toml. The command `mise install` also installs the pre-commit hooks.
 
-Regenerate the operation index with `make gen`. The generator fetches the Omada spec and checks its SHA-256 against gen/data/spec.sha256. The generator fails when the values differ.
+Regenerate the operation index with `make gen`. The generator downloads the Omada spec and compares its SHA-256 with the value in gen/data/spec.sha256. If the values differ, the generator fails.
 
 ## Releases
 
