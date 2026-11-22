@@ -37,6 +37,8 @@ func Build(cfg config.Config, omc *omadaclient.Client) (*mcpkit.Server, error) {
 		b.MacFilterAllowList(), b.MacFilterDenyList(), b.MacFilterAdd(), b.MacFilterRemove(),
 		b.SsidMacFilterModify(),
 		b.GroupProfileList(), b.GroupProfileCreate(), b.GroupProfileModify(), b.GroupProfileDelete(),
+		b.SwitchPortsOverview(), b.LanProfilesList(), b.SwitchPortModify(),
+		b.ClientIpSettingModify(),
 	}
 	for _, tl := range all {
 		s.Register(tl)

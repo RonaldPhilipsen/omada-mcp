@@ -27,13 +27,14 @@ Read-only mode hides every write tool from the client. Only the literal value `f
 
 ## Tools
 
-A curated tool wraps one named operation from the Omada client. The server ships 54 curated tools in ten groups. The table lists every group and tool. The label (write) marks a tool that changes controller state.
+A curated tool wraps one named operation from the Omada client. The server ships 58 curated tools in eleven groups. The table lists every group and tool. The label (write) marks a tool that changes controller state.
 
 | Group | Tools |
 |---|---|
 | `site` | `omada_site_list`, `omada_site_get`, `omada_site_create` (write), `omada_site_delete` (write) |
-| `client` | `omada_client_list`, `omada_client_get`, `omada_client_block` (write), `omada_client_unblock` (write), `omada_client_reconnect` (write) |
+| `client` | `omada_client_list`, `omada_client_get`, `omada_client_block` (write), `omada_client_unblock` (write), `omada_client_reconnect` (write), `omada_client_ip_setting_modify` (write) |
 | `device` | `omada_device_list`, `omada_devices_by_site`, `omada_device_reboot` (write), `omada_topology_get` |
+| `switch` | `omada_switch_ports_overview`, `omada_lan_profiles_list`, `omada_switch_port_modify` (write) |
 | `lan` | `omada_lan_networks_list`, `omada_lan_network_get`, `omada_lan_network_create` (write), `omada_lan_network_delete` (write), `omada_dhcp_list` |
 | `vpn` | `omada_vpn_list`, `omada_vpn_s2s_list`, `omada_vpn_c2s_servers_list`, `omada_vpn_s2s_modify` (write) |
 | `insight` | `omada_insight_overview`, `omada_insight_unresolved_count`, `omada_insight_incidents` |
