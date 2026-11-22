@@ -403,6 +403,53 @@ func (b *Base) AclDelete() mcpkit.Tool {
 	}
 }
 
+// AclModifyIndex returns the omada_acl_modify_index tool: move ACL rules to
+// new positions in their evaluation order. The body mirrors the Omada
+// request type security.DragSortIndexOpenapiVO.
+func (b *Base) AclModifyIndex() mcpkit.Tool {
+	return mcpkit.Tool{
+		Name: "omada_acl_modify_index",
+		Description: "Change the evaluation order of ACL rules (drag-sort). body mirrors the Omada request type security.DragSortIndexOpenapiVO: " +
+			"type (required) selects the rule family: \"gateway\" (gateway ACL), \"switch\" (switch ACL) or \"eap\" (AP ACL). " +
+			"indexes (required) is a map from ACL rule ID to the new index for that rule; the index sets the order in which rules take effect. " +
+			"Rule IDs come from the matching list tool (omada_acl_gateway_list, omada_acl_switch_list, omada_acl_ap_list), where the current position is the index field. " +
+			"The spec does not say whether indexes start at 0 or 1, or how rules that are not in the map shift; list the rules again after the change to check the result.",
+		Group:    "security",
+		Mutating: true,
+		Register: func(t *mcp.Tool) {
+			t.InputSchema = objectSchema(map[string]any{
+				"omadac_id": prop("string", "Omada controller ID; defaults to the configured OMADA_OMADAC_ID."),
+				"site_id":   prop("string", "The site ID the ACL rules belong to (required)."),
+				"body":      prop("object", "Reorder request; mirrors the Omada request type security.DragSortIndexOpenapiVO: type (gateway, switch or eap) and indexes (map of rule ID to new index)."),
+			}, "site_id", "body")
+		},
+		Handler: func(ctx context.Context, args *mcpkit.Args) (*mcp.CallToolResult, error) {
+			in, err := mcpkit.OnArgs[struct {
+				OmacIDArg
+				SiteID string                          `json:"site_id"`
+				Body   security.DragSortIndexOpenapiVO `json:"body"`
+			}](args)
+			if err != nil {
+				return nil, err
+			}
+			if in.SiteID == "" {
+				return nil, fmt.Errorf("site_id is required")
+			}
+			switch in.Body.Type {
+			case "gateway", "switch", "eap":
+			default:
+				return nil, fmt.Errorf("body.type is required and must be gateway, switch or eap")
+			}
+			if len(in.Body.Indexes) == 0 {
+				return nil, fmt.Errorf("body.indexes is required and must map at least one ACL rule ID to an index")
+			}
+			return securityCall(b, in.OmacIDArg, func(omadaID string) (*http.Response, error) {
+				return b.Omc.CloudAPI().Security().ModifyAclIndex(ctx, omadaID, in.SiteID, in.Body)
+			})
+		},
+	}
+}
+
 // MacFilterAllowList returns the omada_mac_filter_allow_list tool: the
 // site's MAC filter allow entries.
 func (b *Base) MacFilterAllowList() mcpkit.Tool {

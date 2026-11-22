@@ -34,14 +34,14 @@ A curated tool is a tool that wraps one named operation from the Omada client. T
 | `site` | `omada_site_list`, `omada_site_get`, `omada_site_create` (write), `omada_site_delete` (write) |
 | `client` | `omada_client_list`, `omada_client_get`, `omada_client_block` (write), `omada_client_unblock` (write), `omada_client_reconnect` (write), `omada_client_ip_setting_modify` (write) |
 | `device` | `omada_device_list`, `omada_devices_by_site`, `omada_device_reboot` (write), `omada_topology_get` |
-| `switch` | `omada_switch_ports_overview`, `omada_lan_profiles_list`, `omada_switch_port_modify` (write) |
-| `lan` | `omada_lan_networks_list`, `omada_lan_network_get`, `omada_lan_network_create` (write), `omada_lan_network_delete` (write), `omada_dhcp_list` |
+| `switch` | `omada_switch_ports_overview`, `omada_lan_profiles_list`, `omada_switch_port_modify` (write), `omada_switch_port_enable` (write) |
+| `lan` | `omada_lan_networks_list`, `omada_lan_network_get`, `omada_lan_network_create` (write), `omada_lan_network_modify` (write), `omada_lan_network_delete` (write), `omada_dhcp_list` |
 | `vpn` | `omada_vpn_list`, `omada_vpn_s2s_list`, `omada_vpn_c2s_servers_list`, `omada_vpn_s2s_modify` (write) |
 | `insight` | `omada_insight_overview`, `omada_insight_unresolved_count`, `omada_insight_incidents` |
 | `log` | `omada_log_alerts`, `omada_log_events` |
-| `ap` | `omada_ap_radio_config_get`, `omada_ap_radio_config_modify` (write), `omada_ap_radios_get`, `omada_ap_available_channel_get` |
+| `ap` | `omada_ap_radio_config_get`, `omada_ap_radio_config_modify` (write), `omada_ap_radios_get`, `omada_ap_available_channel_get`, `omada_ap_ports_list`, `omada_ap_port_modify` (write), `omada_ap_port_vlans_list` |
 | `wireless` | `omada_wireless_wlans_list`, `omada_wireless_ssids_list`, `omada_wireless_ssid_get`, `omada_wireless_ssid_band_steer_modify` (write) |
-| `security` | `omada_acl_gateway_list`, `omada_acl_gateway_create` (write), `omada_acl_gateway_modify` (write), `omada_acl_ap_list`, `omada_acl_ap_create` (write), `omada_acl_ap_modify` (write), `omada_acl_switch_list`, `omada_acl_switch_create` (write), `omada_acl_switch_modify` (write), `omada_acl_delete` (write), `omada_mac_filter_allow_list`, `omada_mac_filter_deny_list`, `omada_mac_filter_add` (write), `omada_mac_filter_remove` (write), `omada_ssid_mac_filter_modify` (write), `omada_group_profile_list`, `omada_group_profile_create` (write), `omada_group_profile_modify` (write), `omada_group_profile_delete` (write) |
+| `security` | `omada_acl_gateway_list`, `omada_acl_gateway_create` (write), `omada_acl_gateway_modify` (write), `omada_acl_ap_list`, `omada_acl_ap_create` (write), `omada_acl_ap_modify` (write), `omada_acl_switch_list`, `omada_acl_switch_create` (write), `omada_acl_switch_modify` (write), `omada_acl_delete` (write), `omada_acl_modify_index` (write), `omada_mac_filter_allow_list`, `omada_mac_filter_deny_list`, `omada_mac_filter_add` (write), `omada_mac_filter_remove` (write), `omada_ssid_mac_filter_modify` (write), `omada_group_profile_list`, `omada_group_profile_create` (write), `omada_group_profile_modify` (write), `omada_group_profile_delete` (write) |
 | `bonjour` | `omada_bonjour_service_list`, `omada_bonjour_service_create` (write), `omada_bonjour_service_modify` (write), `omada_bonjour_service_delete` (write), `omada_bonjour_rule_list`, `omada_bonjour_rule_create` (write), `omada_bonjour_rule_modify` (write), `omada_bonjour_rule_delete` (write) |
 
 The server hides the write tools in read-only mode. Set `OMADA_TOOL_GROUPS` to expose only the groups that your client needs.

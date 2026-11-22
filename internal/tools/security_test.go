@@ -23,7 +23,7 @@ func allSecurityTools(b *tools.Base) []mcpkit.Tool {
 		b.AclGatewayList(), b.AclGatewayCreate(), b.AclGatewayModify(),
 		b.AclApList(), b.AclApCreate(), b.AclApModify(),
 		b.AclSwitchList(), b.AclSwitchCreate(), b.AclSwitchModify(),
-		b.AclDelete(),
+		b.AclDelete(), b.AclModifyIndex(),
 		b.MacFilterAllowList(), b.MacFilterDenyList(), b.MacFilterAdd(), b.MacFilterRemove(),
 		b.SsidMacFilterModify(),
 	}
@@ -728,7 +728,7 @@ func TestSecurityReadOnlyGating(t *testing.T) {
 			t.Errorf("read-only: read tool %s missing, listed = %v", want, seen)
 		}
 	}
-	for _, hidden := range []string{"omada_acl_gateway_create", "omada_acl_gateway_modify", "omada_acl_ap_create", "omada_acl_ap_modify", "omada_acl_switch_create", "omada_acl_switch_modify", "omada_acl_delete", "omada_mac_filter_add", "omada_mac_filter_remove", "omada_ssid_mac_filter_modify"} {
+	for _, hidden := range []string{"omada_acl_gateway_create", "omada_acl_gateway_modify", "omada_acl_ap_create", "omada_acl_ap_modify", "omada_acl_switch_create", "omada_acl_switch_modify", "omada_acl_delete", "omada_acl_modify_index", "omada_mac_filter_add", "omada_mac_filter_remove", "omada_ssid_mac_filter_modify"} {
 		if seen[hidden] {
 			t.Errorf("read-only: mutating tool %s exposed, listed = %v", hidden, seen)
 		}
@@ -747,7 +747,7 @@ func TestSecurityReadOnlyGating(t *testing.T) {
 		"omada_acl_gateway_list", "omada_acl_gateway_create", "omada_acl_gateway_modify",
 		"omada_acl_ap_list", "omada_acl_ap_create", "omada_acl_ap_modify",
 		"omada_acl_switch_list", "omada_acl_switch_create", "omada_acl_switch_modify",
-		"omada_acl_delete",
+		"omada_acl_delete", "omada_acl_modify_index",
 		"omada_mac_filter_allow_list", "omada_mac_filter_deny_list", "omada_mac_filter_add", "omada_mac_filter_remove",
 		"omada_ssid_mac_filter_modify",
 	} {
@@ -784,6 +784,9 @@ func TestSecurityMissingRequiredArgs(t *testing.T) {
 		{name: "omada_acl_delete", args: map[string]any{"site_id": "site-1"}, wantIn: "acl_id is required"},
 		{name: "omada_mac_filter_remove", args: nil, wantIn: "site_id is required"},
 		{name: "omada_mac_filter_remove", args: map[string]any{"site_id": "site-1"}, wantIn: "filter_id is required"},
+		{name: "omada_acl_modify_index", args: map[string]any{"body": map[string]any{"type": "gateway", "indexes": map[string]any{"acl-1": 1}}}, wantIn: "site_id is required"},
+		{name: "omada_acl_modify_index", args: map[string]any{"site_id": "site-1", "body": map[string]any{"type": "vpn", "indexes": map[string]any{"acl-1": 1}}}, wantIn: "body.type is required"},
+		{name: "omada_acl_modify_index", args: map[string]any{"site_id": "site-1", "body": map[string]any{"type": "gateway", "indexes": map[string]any{}}}, wantIn: "body.indexes is required"},
 	}
 	for _, tc := range cases {
 		result, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: tc.name, Arguments: tc.args})
@@ -798,5 +801,53 @@ func TestSecurityMissingRequiredArgs(t *testing.T) {
 
 	if after := len(fake.Requests()); after != before {
 		t.Errorf("captured requests after failed calls = %d, want %d (validation must fail before any HTTP)", after, before)
+	}
+}
+
+// TestAclModifyIndexRoundTrip pins omada_acl_modify_index: the drag-sort
+// body (type and indexes map) is POSTed to /acls/modifyIndex and a null
+// result payload comes back as an empty object.
+func TestAclModifyIndexRoundTrip(t *testing.T) {
+	b, fake := newBase(t)
+	mux := fake.Handler().(*http.ServeMux)
+	mux.Handle("POST /openapi/v1/{omadacId}/sites/{siteId}/acls/modifyIndex", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fakectrl.EnvelopeJSON(w, 0, nil)
+	}))
+
+	cs := newSession(t, mcpkit.Options{ReadOnly: false}, allSecurityTools(b)...)
+	result, err := cs.CallTool(context.Background(), &mcp.CallToolParams{
+		Name: "omada_acl_modify_index",
+		Arguments: map[string]any{
+			"site_id": "site-1",
+			"body": map[string]any{
+				"type":    "eap",
+				"indexes": map[string]any{"acl-1": 1, "acl-2": 2},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	text, isError := toolText(result)
+	if isError {
+		t.Fatalf("omada_acl_modify_index errored: %s", text)
+	}
+	if text != "{}" {
+		t.Errorf("result = %q, want {} for a null result payload", text)
+	}
+
+	req := entryFor(t, fake.Requests(), "/openapi/v1/"+omadacConfigured+"/sites/site-1/acls/modifyIndex")
+	if req.Method != http.MethodPost {
+		t.Errorf("method = %q, want POST", req.Method)
+	}
+	var sent struct {
+		Type    string           `json:"type"`
+		Indexes map[string]int32 `json:"indexes"`
+	}
+	if err := json.Unmarshal(req.Body, &sent); err != nil {
+		t.Fatalf("request body %q is not JSON: %v", req.Body, err)
+	}
+	if sent.Type != "eap" || len(sent.Indexes) != 2 || sent.Indexes["acl-2"] != 2 {
+		t.Errorf("sent body = %+v, want type eap with acl-1=1 and acl-2=2", sent)
 	}
 }
