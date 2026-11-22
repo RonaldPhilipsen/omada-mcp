@@ -18,7 +18,10 @@ import (
 )
 
 func allApTools(b *tools.Base) []mcpkit.Tool {
-	return []mcpkit.Tool{b.ApRadioConfigGet(), b.ApRadioConfigModify(), b.ApRadiosGet(), b.ApAvailableChannelGet()}
+	return []mcpkit.Tool{
+		b.ApRadioConfigGet(), b.ApRadioConfigModify(), b.ApRadiosGet(), b.ApAvailableChannelGet(),
+		b.ApPortsList(), b.ApPortModify(), b.ApPortVlansList(),
+	}
 }
 
 // TestApRadioConfigGetRoundTrip pins omada_ap_radio_config_get: the required
@@ -238,6 +241,9 @@ func TestApBusinessError(t *testing.T) {
 	mux.Handle("PATCH /openapi/v1/{omadacId}/sites/{siteId}/aps/{apMac}/radio-config", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		fakectrl.EnvelopeJSON(w, -1172, nil)
 	}))
+	mux.Handle("PATCH /openapi/v1/{omadacId}/sites/{siteId}/aps/{apMac}/ports/{port}", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fakectrl.EnvelopeJSON(w, -1173, nil)
+	}))
 
 	cs := newSession(t, mcpkit.Options{ReadOnly: false}, allApTools(b)...)
 
@@ -248,6 +254,7 @@ func TestApBusinessError(t *testing.T) {
 	}{
 		{name: "omada_ap_radio_config_get", args: map[string]any{"site_id": "site-1", "ap_mac": "aa-bb-cc-dd-ee-01"}, wantIn: "API error -1171"},
 		{name: "omada_ap_radio_config_modify", args: map[string]any{"site_id": "site-1", "ap_mac": "aa-bb-cc-dd-ee-01", "body": map[string]any{}}, wantIn: "API error -1172"},
+		{name: "omada_ap_port_modify", args: map[string]any{"site_id": "site-1", "ap_mac": "aa-bb-cc-dd-ee-01", "port": "1", "body": map[string]any{}}, wantIn: "API error -1173"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -339,5 +346,171 @@ func TestApMissingRequiredArgs(t *testing.T) {
 
 	if after := len(fake.Requests()); after != before {
 		t.Errorf("captured requests after failed calls = %d, want %d (validation must fail before any HTTP)", after, before)
+	}
+}
+
+// TestApPortsListRoundTrip pins omada_ap_ports_list: GET /ports returns the
+// AP's LAN port list with the local VLAN fields.
+func TestApPortsListRoundTrip(t *testing.T) {
+	b, fake := newBase(t)
+	mux := fake.Handler().(*http.ServeMux)
+	mux.Handle("GET /openapi/v1/{omadacId}/sites/{siteId}/aps/{apMac}/ports", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fakectrl.EnvelopeJSON(w, 0, []map[string]any{
+			{"port": 1, "lanPort": "LAN1", "name": "TV", "localVlanEnable": true, "localVlanNetworkId": "net-iot", "status": true},
+			{"port": 2, "lanPort": "LAN2", "name": "Uplink", "localVlanEnable": false, "status": true},
+		})
+	}))
+
+	cs := newSession(t, mcpkit.Options{ReadOnly: true}, allApTools(b)...)
+	result, err := cs.CallTool(context.Background(), &mcp.CallToolParams{
+		Name:      "omada_ap_ports_list",
+		Arguments: map[string]any{"site_id": "site-1", "ap_mac": "aa-bb-cc-dd-ee-01"},
+	})
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	text, isError := toolText(result)
+	if isError {
+		t.Fatalf("omada_ap_ports_list errored: %s", text)
+	}
+	var got []struct {
+		Port               int    `json:"port"`
+		Name               string `json:"name"`
+		LocalVlanNetworkID string `json:"localVlanNetworkId"`
+	}
+	if err := json.Unmarshal([]byte(text), &got); err != nil {
+		t.Fatalf("content %q is not JSON: %v", text, err)
+	}
+	if len(got) != 2 || got[0].Port != 1 || got[0].Name != "TV" || got[0].LocalVlanNetworkID != "net-iot" {
+		t.Errorf("decoded ports = %+v, want port 1 named TV on net-iot", got)
+	}
+
+	req := entryFor(t, fake.Requests(), "/openapi/v1/"+omadacConfigured+"/sites/site-1/aps/aa-bb-cc-dd-ee-01/ports")
+	if req.Method != http.MethodGet {
+		t.Errorf("method = %q, want GET", req.Method)
+	}
+}
+
+// TestApPortModifyRoundTrip pins omada_ap_port_modify: ap_mac and port go
+// into the PATCH path and the body mirrors ap.ModifyAPLANPort (the local
+// VLAN network of the port).
+func TestApPortModifyRoundTrip(t *testing.T) {
+	b, fake := newBase(t)
+	mux := fake.Handler().(*http.ServeMux)
+	mux.Handle("PATCH /openapi/v1/{omadacId}/sites/{siteId}/aps/{apMac}/ports/{port}", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fakectrl.EnvelopeJSON(w, 0, nil)
+	}))
+
+	cs := newSession(t, mcpkit.Options{ReadOnly: false}, allApTools(b)...)
+	result, err := cs.CallTool(context.Background(), &mcp.CallToolParams{
+		Name: "omada_ap_port_modify",
+		Arguments: map[string]any{
+			"site_id": "site-1",
+			"ap_mac":  "aa-bb-cc-dd-ee-01",
+			"port":    "1",
+			"body": map[string]any{
+				"localVlanEnable":    true,
+				"localVlanId":        20,
+				"localVlanNetworkId": "net-iot",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	text, isError := toolText(result)
+	if isError {
+		t.Fatalf("omada_ap_port_modify errored: %s", text)
+	}
+	if text != "{}" {
+		t.Errorf("result = %q, want {} for a null result payload", text)
+	}
+
+	req := entryFor(t, fake.Requests(), "/openapi/v1/"+omadacConfigured+"/sites/site-1/aps/aa-bb-cc-dd-ee-01/ports/1")
+	if req.Method != http.MethodPatch {
+		t.Errorf("method = %q, want PATCH", req.Method)
+	}
+	var sent struct {
+		LocalVlanEnable    bool   `json:"localVlanEnable"`
+		LocalVlanID        int    `json:"localVlanId"`
+		LocalVlanNetworkID string `json:"localVlanNetworkId"`
+	}
+	if err := json.Unmarshal(req.Body, &sent); err != nil {
+		t.Fatalf("request body %q is not JSON: %v", req.Body, err)
+	}
+	if !sent.LocalVlanEnable || sent.LocalVlanID != 20 || sent.LocalVlanNetworkID != "net-iot" {
+		t.Errorf("sent body = %+v, want localVlanEnable true, localVlanId 20, localVlanNetworkId net-iot", sent)
+	}
+}
+
+// TestApPortVlansListRoundTrip pins omada_ap_port_vlans_list: GET
+// /port-vlans with the default paging (page 1, pageSize 20) and the
+// per-network port membership comes back.
+func TestApPortVlansListRoundTrip(t *testing.T) {
+	b, fake := newBase(t)
+	mux := fake.Handler().(*http.ServeMux)
+	mux.Handle("GET /openapi/v1/{omadacId}/sites/{siteId}/aps/{apMac}/port-vlans", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fakectrl.EnvelopeJSON(w, 0, map[string]any{
+			"currentPage": 1,
+			"currentSize": 20,
+			"totalRows":   1,
+			"data": []map[string]any{
+				{"localVlanId": 20, "localVlanNetworkId": "net-iot", "name": "IoT", "nativePort": []string{"1"}},
+			},
+		})
+	}))
+
+	cs := newSession(t, mcpkit.Options{ReadOnly: true}, allApTools(b)...)
+	result, err := cs.CallTool(context.Background(), &mcp.CallToolParams{
+		Name:      "omada_ap_port_vlans_list",
+		Arguments: map[string]any{"site_id": "site-1", "ap_mac": "aa-bb-cc-dd-ee-01"},
+	})
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	text, isError := toolText(result)
+	if isError {
+		t.Fatalf("omada_ap_port_vlans_list errored: %s", text)
+	}
+	var got struct {
+		Data []struct {
+			LocalVlanNetworkID string   `json:"localVlanNetworkId"`
+			NativePort         []string `json:"nativePort"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(text), &got); err != nil {
+		t.Fatalf("content %q is not JSON: %v", text, err)
+	}
+	if len(got.Data) != 1 || got.Data[0].LocalVlanNetworkID != "net-iot" || len(got.Data[0].NativePort) != 1 {
+		t.Errorf("decoded data = %+v, want one network net-iot with native port 1", got.Data)
+	}
+
+	req := entryFor(t, fake.Requests(), "/openapi/v1/"+omadacConfigured+"/sites/site-1/aps/aa-bb-cc-dd-ee-01/port-vlans")
+	if req.Query != "page=1&pageSize=20" {
+		t.Errorf("query = %q, want page=1&pageSize=20", req.Query)
+	}
+}
+
+// TestApPortReadOnlyGating pins gating for the port tools: in read-only mode
+// the list tools are present and omada_ap_port_modify is absent.
+func TestApPortReadOnlyGating(t *testing.T) {
+	b, _ := newBase(t)
+
+	cs := newSession(t, mcpkit.Options{ReadOnly: true}, allApTools(b)...)
+	listed, err := cs.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := make(map[string]bool)
+	for _, tl := range listed.Tools {
+		seen[tl.Name] = true
+	}
+	for _, want := range []string{"omada_ap_ports_list", "omada_ap_port_vlans_list"} {
+		if !seen[want] {
+			t.Errorf("read-only: read tool %s missing, listed = %v", want, seen)
+		}
+	}
+	if seen["omada_ap_port_modify"] {
+		t.Errorf("read-only: mutating tool omada_ap_port_modify exposed, listed = %v", seen)
 	}
 }

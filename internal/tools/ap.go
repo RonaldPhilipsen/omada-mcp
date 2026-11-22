@@ -179,3 +179,124 @@ func (b *Base) ApAvailableChannelGet() mcpkit.Tool {
 		},
 	}
 }
+
+// ApPortsList returns the omada_ap_ports_list tool: the wired LAN ports of
+// an AP and their current settings.
+func (b *Base) ApPortsList() mcpkit.Tool {
+	return mcpkit.Tool{
+		Name: "omada_ap_ports_list",
+		Description: "List the wired LAN ports of an Omada AP with their current settings: port number, name, status, link status and speed, and the local VLAN fields (localVlanEnable, localVlanId, localVlanNetworkId). " +
+			"Use the port number for omada_ap_port_modify. Use omada_ap_port_vlans_list to see which ports sit on each network.",
+		Group:    "ap",
+		Register: func(t *mcp.Tool) { t.InputSchema = apIDSchema() },
+		Handler: func(ctx context.Context, args *mcpkit.Args) (*mcp.CallToolResult, error) {
+			in, err := mcpkit.OnArgs[apIDIn](args)
+			if err != nil {
+				return nil, err
+			}
+			if err := validateApID(in); err != nil {
+				return nil, err
+			}
+			return apIDBody(b, in, func(omadacID string) (*http.Response, error) {
+				return b.Omc.CloudAPI().Ap().GetApPortList(ctx, omadacID, in.SiteID, in.ApMac)
+			})
+		},
+	}
+}
+
+// apPortModifyDesc documents the ap.ModifyAPLANPort fields that matter for
+// putting a wired AP port on a network.
+const apPortModifyDesc = "body mirrors the Omada request type ap.ModifyAPLANPort; send only the fields to change. " +
+	"To set the network of the port (for example to put the port that feeds a TV on a given LAN): localVlanEnable true and localVlanNetworkId (a LAN network ID from omada_lan_networks_list), with localVlanId as the VLAN ID. " +
+	"untaggedNetworkId and taggedNetworkId are lists of network IDs; untagged and tagged are string fields. The spec does not explain how these relate to the localVlan fields, so check the result with omada_ap_port_vlans_list or omada_ap_ports_list after the change. " +
+	"Other fields: name, status (true=enabled), poeOutEnable, bandwidthControlEnable, ingressRateLimit and egressRateLimit."
+
+// ApPortModifyIn is the input of omada_ap_port_modify.
+type ApPortModifyIn struct {
+	apIDIn
+	Port string             `json:"port"`
+	Body ap.ModifyAPLANPort `json:"body"`
+}
+
+// ApPortModify returns the omada_ap_port_modify tool: PATCH one wired LAN
+// port of an AP. The body mirrors the Omada request type ap.ModifyAPLANPort.
+func (b *Base) ApPortModify() mcpkit.Tool {
+	return mcpkit.Tool{
+		Name:        "omada_ap_port_modify",
+		Description: "Modify one wired LAN port of an Omada AP. " + apPortModifyDesc,
+		Group:       "ap",
+		Mutating:    true,
+		Register: func(t *mcp.Tool) {
+			t.InputSchema = objectSchema(map[string]any{
+				"omadac_id": prop("string", "Omada controller ID; defaults to the configured OMADA_OMADAC_ID."),
+				"site_id":   prop("string", "The site ID the AP belongs to (required)."),
+				"ap_mac":    prop("string", "The AP MAC address, e.g. 20-36-26-D4-AE-A0 (required)."),
+				"port":      prop("string", "The LAN port number on the AP, e.g. \"1\", from omada_ap_ports_list (required)."),
+				"body":      prop("object", "Port settings; mirrors the Omada request type ap.ModifyAPLANPort. "+apPortModifyDesc),
+			}, "site_id", "ap_mac", "port", "body")
+		},
+		Handler: func(ctx context.Context, args *mcpkit.Args) (*mcp.CallToolResult, error) {
+			in, err := mcpkit.OnArgs[ApPortModifyIn](args)
+			if err != nil {
+				return nil, err
+			}
+			if err := validateApID(&in.apIDIn); err != nil {
+				return nil, err
+			}
+			if in.Port == "" {
+				return nil, fmt.Errorf("port is required")
+			}
+			return apIDBody(b, &in.apIDIn, func(omadacID string) (*http.Response, error) {
+				return b.Omc.CloudAPI().Ap().ModifyApPort(ctx, omadacID, in.SiteID, in.ApMac, in.Port, in.Body)
+			})
+		},
+	}
+}
+
+type apPortVlansIn struct {
+	apIDIn
+	Page     int `json:"page,omitempty"`
+	PageSize int `json:"page_size,omitempty"`
+}
+
+// ApPortVlansList returns the omada_ap_port_vlans_list tool: the current
+// VLAN membership of an AP's ports, per VLAN network (GET port-vlans).
+func (b *Base) ApPortVlansList() mcpkit.Tool {
+	return mcpkit.Tool{
+		Name: "omada_ap_port_vlans_list",
+		Description: "List the current VLAN configuration of an Omada AP's ports, with paging: per VLAN network, its localVlanId, localVlanNetworkId, name, and the port lists nativePort, untagPort and tagPort. " +
+			"Use it to confirm which wired port is on which network after omada_ap_port_modify.",
+		Group: "ap",
+		Register: func(t *mcp.Tool) {
+			t.InputSchema = objectSchema(map[string]any{
+				"omadac_id": prop("string", "Omada controller ID; defaults to the configured OMADA_OMADAC_ID."),
+				"site_id":   prop("string", "The site ID the AP belongs to (required)."),
+				"ap_mac":    prop("string", "The AP MAC address, e.g. 20-36-26-D4-AE-A0 (required)."),
+				"page":      prop("integer", "Page number, starting at 1 (default 1)."),
+				"page_size": prop("integer", "Entries per page, 1-1000 (default 20)."),
+			}, "site_id", "ap_mac")
+		},
+		Handler: func(ctx context.Context, args *mcpkit.Args) (*mcp.CallToolResult, error) {
+			in, err := mcpkit.OnArgs[apPortVlansIn](args)
+			if err != nil {
+				return nil, err
+			}
+			if err := validateApID(&in.apIDIn); err != nil {
+				return nil, err
+			}
+			page, pageSize := in.Page, in.PageSize
+			if page == 0 {
+				page = 1
+			}
+			if pageSize == 0 {
+				pageSize = 20
+			}
+			return apIDBody(b, &in.apIDIn, func(omadacID string) (*http.Response, error) {
+				return b.Omc.CloudAPI().Ap().GetApPortVlans(ctx, omadacID, in.SiteID, in.ApMac, &ap.GetApPortVlansParams{
+					Page:     int32(page),
+					PageSize: int32(pageSize),
+				})
+			})
+		},
+	}
+}
