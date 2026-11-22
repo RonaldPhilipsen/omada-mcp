@@ -20,7 +20,8 @@ const switchPortBodyDesc = "Port settings; mirrors the Omada request type switch
 	"profileId (required for a single port; IDs from omada_lan_profiles_list). " +
 	"To set the untagged (native) network of a port: profileVlanOverrideEnable true and nativeNetworkId (a LAN network ID from omada_lan_networks_list), " +
 	"optionally networkTagsSetting (0=allow all, 1=block all, 2=custom) with tagNetworkIds. " +
-	"Other common fields: name, disable, poe (0=off, 1=on), profileOverrideEnable, portIsolationEnable, linkSpeed, duplex."
+	"Other common fields: name, poe (0=off, 1=on), profileOverrideEnable, portIsolationEnable, linkSpeed, duplex. " +
+	"To turn a port off or on, use omada_switch_port_enable, not disable here: in a live test, disable true and then false through this PATCH did not take the link down, and the cause is not known."
 
 // SwitchPortsOverview returns the omada_switch_ports_overview tool: every
 // switch port in the site with its profile, networks and link state.
@@ -129,6 +130,58 @@ func (b *Base) SwitchPortModify() mcpkit.Tool {
 			}
 			return securityCall(b, in.OmacIDArg, func(omadacID string) (*http.Response, error) {
 				return b.Omc.CloudAPI().Switch().ModifySwitchPort(ctx, omadacID, in.SiteID, in.SwitchMac, in.Port, in.Body)
+			})
+		},
+	}
+}
+
+// SwitchPortEnable returns the omada_switch_port_enable tool: turn one
+// switch port off or on with the dedicated status endpoint (PUT
+// .../ports/{port}/status, body switch.SwitchPortStatus).
+func (b *Base) SwitchPortEnable() mcpkit.Tool {
+	return mcpkit.Tool{
+		Name: "omada_switch_port_enable",
+		Description: "Turn one switch port off (enable false) or on (enable true). It calls the dedicated port status endpoint (Omada operation SetPortModeForGivenPort1, body switch.SwitchPortStatus, status 0=off, 1=on). " +
+			"Turning a port off cuts the link of the device on it; to bounce a port, turn it off, wait, then turn it on. " +
+			"Do not turn off the port that connects the controller or this server to the network.",
+		Group:    "switch",
+		Mutating: true,
+		Register: func(t *mcp.Tool) {
+			t.InputSchema = objectSchema(map[string]any{
+				"omadac_id":  prop("string", "Omada controller ID; defaults to the configured OMADA_OMADAC_ID."),
+				"site_id":    prop("string", "The site ID the switch belongs to (required)."),
+				"switch_mac": prop("string", "The switch MAC address, e.g. A8-29-48-EE-EB-1D (required)."),
+				"port":       prop("string", "The port number on the switch, e.g. \"2\" (required)."),
+				"enable":     prop("boolean", "true turns the port on, false turns it off (required)."),
+			}, "site_id", "switch_mac", "port", "enable")
+		},
+		Handler: func(ctx context.Context, args *mcpkit.Args) (*mcp.CallToolResult, error) {
+			in, err := mcpkit.OnArgs[struct {
+				OmacIDArg
+				SiteID    string `json:"site_id"`
+				SwitchMac string `json:"switch_mac"`
+				Port      string `json:"port"`
+				Enable    *bool  `json:"enable"`
+			}](args)
+			if err != nil {
+				return nil, err
+			}
+			switch {
+			case in.SiteID == "":
+				return nil, fmt.Errorf("site_id is required")
+			case in.SwitchMac == "":
+				return nil, fmt.Errorf("switch_mac is required")
+			case in.Port == "":
+				return nil, fmt.Errorf("port is required")
+			case in.Enable == nil:
+				return nil, fmt.Errorf("enable is required (true or false)")
+			}
+			body := switchpkg.SwitchPortStatus{Status: 0}
+			if *in.Enable {
+				body.Status = 1
+			}
+			return securityCall(b, in.OmacIDArg, func(omadacID string) (*http.Response, error) {
+				return b.Omc.CloudAPI().Switch().SetPortModeForGivenPort1(ctx, omadacID, in.SiteID, in.SwitchMac, in.Port, body)
 			})
 		},
 	}

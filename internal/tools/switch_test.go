@@ -19,7 +19,7 @@ import (
 
 func allSwitchTools(b *tools.Base) []mcpkit.Tool {
 	return []mcpkit.Tool{
-		b.SwitchPortsOverview(), b.LanProfilesList(), b.SwitchPortModify(), b.ClientIpSettingModify(),
+		b.SwitchPortsOverview(), b.LanProfilesList(), b.SwitchPortModify(), b.SwitchPortEnable(), b.ClientIpSettingModify(),
 	}
 }
 
@@ -133,6 +133,49 @@ func TestSwitchPortModifyRoundTrip(t *testing.T) {
 	}
 }
 
+// TestSwitchPortEnableRoundTrip pins omada_switch_port_enable: the PUT
+// hits the dedicated /status endpoint, and enable false and true become
+// status 0 and 1.
+func TestSwitchPortEnableRoundTrip(t *testing.T) {
+	b, fake := newBase(t)
+	mux := fake.Handler().(*http.ServeMux)
+	mux.Handle("PUT /openapi/v1/{omadacId}/sites/{siteId}/switches/{switchMac}/ports/{port}/status", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fakectrl.EnvelopeJSON(w, 0, nil)
+	}))
+
+	cs := newSession(t, mcpkit.Options{ReadOnly: false}, allSwitchTools(b)...)
+	path := "/openapi/v1/" + omadacConfigured + "/sites/site-1/switches/A8-29-48-EE-EB-1D/ports/2/status"
+	for _, tc := range []struct {
+		enable bool
+		want   string
+	}{{false, `{"status":0}`}, {true, `{"status":1}`}} {
+		before := len(fake.Requests())
+		result, err := cs.CallTool(context.Background(), &mcp.CallToolParams{
+			Name: "omada_switch_port_enable",
+			Arguments: map[string]any{
+				"site_id":    "site-1",
+				"switch_mac": "A8-29-48-EE-EB-1D",
+				"port":       "2",
+				"enable":     tc.enable,
+			},
+		})
+		if err != nil {
+			t.Fatalf("CallTool(enable=%v): %v", tc.enable, err)
+		}
+		text, isError := toolText(result)
+		if isError {
+			t.Fatalf("omada_switch_port_enable(enable=%v) errored: %s", tc.enable, text)
+		}
+		req := entryFor(t, fake.Requests()[before:], path)
+		if req.Method != http.MethodPut {
+			t.Errorf("enable=%v: method = %q, want PUT", tc.enable, req.Method)
+		}
+		if strings.TrimSpace(string(req.Body)) != tc.want {
+			t.Errorf("enable=%v: body = %s, want %s", tc.enable, req.Body, tc.want)
+		}
+	}
+}
+
 // TestClientIpSettingModifyRoundTrip pins omada_client_ip_setting_modify:
 // the client MAC goes into the PATCH path under /network/sites and the
 // body mirrors OpenApiClientIpSetting.
@@ -211,6 +254,8 @@ func TestSwitchToolsInvalidArgs(t *testing.T) {
 		{name: "omada_lan_profiles_list", args: map[string]any{}, wantIn: "site_id is required"},
 		{name: "omada_switch_port_modify", args: map[string]any{"site_id": "site-1", "port": "2", "body": map[string]any{}}, wantIn: "switch_mac is required"},
 		{name: "omada_switch_port_modify", args: map[string]any{"site_id": "site-1", "switch_mac": "AA-BB-CC-DD-EE-FF", "body": map[string]any{}}, wantIn: "port is required"},
+		{name: "omada_switch_port_enable", args: map[string]any{"site_id": "site-1", "port": "2", "enable": false}, wantIn: "switch_mac is required"},
+		{name: "omada_switch_port_enable", args: map[string]any{"site_id": "site-1", "switch_mac": "AA-BB-CC-DD-EE-FF", "port": "2"}, wantIn: "enable is required"},
 		{name: "omada_client_ip_setting_modify", args: map[string]any{"site_id": "site-1", "body": map[string]any{"useFixedAddr": false}}, wantIn: "client_mac is required"},
 		{name: "omada_client_ip_setting_modify", args: map[string]any{"site_id": "site-1", "client_mac": "AA-BB-CC-DD-EE-FF", "body": map[string]any{"useFixedAddr": true, "netId": "net-iot"}}, wantIn: "body.ip and body.netId are required"},
 	}

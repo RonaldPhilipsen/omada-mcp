@@ -18,7 +18,7 @@ import (
 )
 
 func allLanTools(b *tools.Base) []mcpkit.Tool {
-	return []mcpkit.Tool{b.LanNetworksList(), b.LanNetworkGet(), b.LanNetworkCreate(), b.LanNetworkDelete(), b.DhcpList()}
+	return []mcpkit.Tool{b.LanNetworksList(), b.LanNetworkGet(), b.LanNetworkCreate(), b.LanNetworkModify(), b.LanNetworkDelete(), b.DhcpList()}
 }
 
 // TestLanNetworksListRoundTrip pins omada_lan_networks_list: the required
@@ -296,7 +296,7 @@ func TestLanReadOnlyGating(t *testing.T) {
 	if !seen["omada_lan_networks_list"] || !seen["omada_lan_network_get"] || !seen["omada_dhcp_list"] {
 		t.Errorf("read-only: read tools missing, listed = %v", seen)
 	}
-	if seen["omada_lan_network_create"] || seen["omada_lan_network_delete"] {
+	if seen["omada_lan_network_create"] || seen["omada_lan_network_modify"] || seen["omada_lan_network_delete"] {
 		t.Errorf("read-only: mutating tools exposed, listed = %v", seen)
 	}
 
@@ -309,7 +309,7 @@ func TestLanReadOnlyGating(t *testing.T) {
 	for _, tl := range listed2.Tools {
 		seen2[tl.Name] = true
 	}
-	for _, want := range []string{"omada_lan_networks_list", "omada_lan_network_get", "omada_lan_network_create", "omada_lan_network_delete", "omada_dhcp_list"} {
+	for _, want := range []string{"omada_lan_networks_list", "omada_lan_network_get", "omada_lan_network_create", "omada_lan_network_modify", "omada_lan_network_delete", "omada_dhcp_list"} {
 		if !seen2[want] {
 			t.Errorf("read-write: %s not listed, listed = %v", want, seen2)
 		}
@@ -355,5 +355,98 @@ func TestLanMissingRequiredSiteID(t *testing.T) {
 
 	if after := len(fake.Requests()); after != before {
 		t.Errorf("captured requests after failed calls = %d, want %d (validation must fail before any HTTP)", after, before)
+	}
+}
+
+// TestLanNetworkModifyRoundTrip pins omada_lan_network_modify: the PATCH
+// hits /lan-networks/{networkId} and the body keeps dhcpSettingsVO, the
+// field name that lan.LanNetworkOpenApiVO expects.
+func TestLanNetworkModifyRoundTrip(t *testing.T) {
+	b, fake := newBase(t)
+	mux := fake.Handler().(*http.ServeMux)
+	mux.Handle("PATCH /openapi/v1/{omadacId}/sites/{siteId}/lan-networks/{networkId}", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fakectrl.EnvelopeJSON(w, 0, nil)
+	}))
+
+	cs := newSession(t, mcpkit.Options{ReadOnly: false}, allLanTools(b)...)
+	result, err := cs.CallTool(context.Background(), &mcp.CallToolParams{
+		Name: "omada_lan_network_modify",
+		Arguments: map[string]any{
+			"site_id":    "site-1",
+			"network_id": "net-9",
+			"body": map[string]any{
+				"name": "IoT", "purpose": 0, "vlan": 30, "igmpSnoopEnable": true,
+				"dhcpSettingsVO": map[string]any{"enable": true, "ipaddrStart": "192.168.30.100", "ipaddrEnd": "192.168.30.200", "dhcpns": "auto", "leasetime": 120},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	text, isError := toolText(result)
+	if isError {
+		t.Fatalf("omada_lan_network_modify errored: %s", text)
+	}
+
+	req := entryFor(t, fake.Requests(), "/openapi/v1/"+omadacConfigured+"/sites/site-1/lan-networks/net-9")
+	if req.Method != http.MethodPatch {
+		t.Errorf("method = %q, want PATCH", req.Method)
+	}
+	var sent struct {
+		Name            string `json:"name"`
+		Vlan            int    `json:"vlan"`
+		IgmpSnoopEnable bool   `json:"igmpSnoopEnable"`
+		Dhcp            *struct {
+			Enable      bool   `json:"enable"`
+			IpaddrStart string `json:"ipaddrStart"`
+			IpaddrEnd   string `json:"ipaddrEnd"`
+			Leasetime   int    `json:"leasetime"`
+		} `json:"dhcpSettingsVO"`
+	}
+	if err := json.Unmarshal(req.Body, &sent); err != nil {
+		t.Fatalf("request body %q is not JSON: %v", req.Body, err)
+	}
+	if sent.Name != "IoT" || sent.Vlan != 30 || !sent.IgmpSnoopEnable {
+		t.Errorf("sent body = %s, want the mirrored network fields", req.Body)
+	}
+	if sent.Dhcp == nil || !sent.Dhcp.Enable || sent.Dhcp.IpaddrStart != "192.168.30.100" || sent.Dhcp.IpaddrEnd != "192.168.30.200" || sent.Dhcp.Leasetime != 120 {
+		t.Errorf("sent body = %s, want the DHCP settings under dhcpSettingsVO", req.Body)
+	}
+}
+
+// TestLanNetworkBodyValidation pins the body checks of create and modify:
+// the get-output names dhcpSettings and lanNetworkIpv6Config, which
+// lan.LanNetworkOpenApiVO would drop, and a modify without a name are tool
+// errors that send no request.
+func TestLanNetworkBodyValidation(t *testing.T) {
+	b, fake := newBase(t)
+	cs := newSession(t, mcpkit.Options{ReadOnly: false}, allLanTools(b)...)
+
+	cases := []struct {
+		name   string
+		args   map[string]any
+		wantIn string
+	}{
+		{name: "omada_lan_network_create", args: map[string]any{"site_id": "site-1", "body": map[string]any{"name": "IoT", "purpose": 0, "dhcpSettings": map[string]any{"enable": true}}}, wantIn: "use body.dhcpSettingsVO"},
+		{name: "omada_lan_network_create", args: map[string]any{"site_id": "site-1", "body": map[string]any{"name": "IoT", "purpose": 0, "lanNetworkIpv6Config": map[string]any{}}}, wantIn: "use body.lanNeworkIpv6Config"},
+		{name: "omada_lan_network_modify", args: map[string]any{"site_id": "site-1", "network_id": "net-9", "body": map[string]any{"name": "IoT", "purpose": 0, "dhcpSettings": map[string]any{"enable": true}}}, wantIn: "use body.dhcpSettingsVO"},
+		{name: "omada_lan_network_modify", args: map[string]any{"site_id": "site-1", "body": map[string]any{"name": "IoT"}}, wantIn: "network_id is required"},
+		{name: "omada_lan_network_modify", args: map[string]any{"site_id": "site-1", "network_id": "net-9", "body": map[string]any{"vlan": 30}}, wantIn: "body.name is required"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name+"/"+tc.wantIn, func(t *testing.T) {
+			before := len(fake.Requests())
+			result, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: tc.name, Arguments: tc.args})
+			if err == nil {
+				text, _ := toolText(result)
+				t.Fatalf("not a tool error, content %q", text)
+			}
+			if !strings.Contains(err.Error(), tc.wantIn) {
+				t.Errorf("tool error %q does not contain %q", err, tc.wantIn)
+			}
+			if after := len(fake.Requests()); after != before {
+				t.Errorf("invalid call sent %d request(s)", after-before)
+			}
+		})
 	}
 }
